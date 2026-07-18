@@ -420,6 +420,17 @@ def terms(request: Request):
     return templates.TemplateResponse(request, "terms.html", {})
 
 
+@app.get("/health")
+def health():
+    """For uptime monitors: verifies the app AND its database connection."""
+    try:
+        conn = db.connect()
+        conn.execute("SELECT 1").fetchone()
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(503, f"database unreachable: {e}")
+
+
 @app.post("/admin/send-weekly")
 def admin_send_weekly(request: Request):
     """Triggered by the Sunday GitHub Action. Idempotent, so a retry after a
