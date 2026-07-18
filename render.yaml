@@ -18,9 +18,14 @@ services:
         sync: false          # paste from resend.com -> API Keys
       - key: EMAIL_FROM
         value: Sunday Strength <onboarding@resend.dev>
-      # Beta option: Gmail SMTP sends from your own address to anyone
-      # (~500/day). Takes priority over Resend when both are set.
+      # Beta email route (Render free tier blocks SMTP, so use Brevo's HTTPS
+      # API): brevo.com free account, verify your address as a sender, then:
+      - key: BREVO_API_KEY
+        sync: false          # Brevo -> SMTP & API -> API keys
+      - key: BREVO_SENDER
+        sync: false          # the verified sender address
+      # Gmail SMTP alternative — only works on hosts that allow SMTP egress.
       - key: GMAIL_USER
-        sync: false          # e.g. you@gmail.com (blank = use Resend)
+        sync: false
       - key: GMAIL_APP_PASSWORD
-        sync: false          # Google Account -> Security -> App passwords
+        sync: false
