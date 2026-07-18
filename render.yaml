@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: sunday-strength
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && python scripts/fetch_exercise_media.py
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.6
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false          # paste the Supabase connection string
+      - key: RESEND_API_KEY
+        sync: false          # paste from resend.com -> API Keys
+      - key: EMAIL_FROM
+        value: Sunday Strength <onboarding@resend.dev>

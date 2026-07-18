@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exercises — Sunday Strength</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+  .part-section { margin-bottom: 1.75rem; }
+  .part-section h2 { font-size: 1.25rem; margin-bottom: .6rem; }
+  .ex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+             gap: .5rem; list-style: none; padding: 0; }
+  .ex-item { background: var(--panel); border: 1px solid var(--line);
+             border-radius: 11px; padding: .6rem .9rem; font-size: .93rem;
+             display: flex; justify-content: space-between; gap: .6rem;
+             align-items: baseline; }
+  .ex-item a { text-decoration: none; font-weight: 600; }
+  .ex-item a:hover { text-decoration: underline; }
+  .ex-item .sets { color: var(--muted); font-size: .83rem; white-space: nowrap; }
+  .ex-item[hidden], .part-section[hidden] { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  {% include "_nav.html" %}
+  <h1 style="font-size:2rem;">Exercises</h1>
+  <p class="lede" style="margin-bottom:1rem;">Everything the plans draw from.
+    {% if member %}Exercises marked <span class="badge">this week</span> are in
+    your week {{ week }} plan.{% else %}Tap anything for photos and
+    step-by-step instructions.{% endif %}</p>
+
+  <div class="chips">
+    <span class="lbl">Difficulty</span>
+    {% for lvl in levels %}
+    <button type="button" class="chip lvl-chip {{ 'on' if lvl == default_level }}"
+            data-level="{{ lvl }}">{{ lvl | capitalize }}</button>
+    {% endfor %}
+  </div>
+  <div class="chips">
+    <span class="lbl">Body part</span>
+    <button type="button" class="chip part-chip on" data-part="all">All</button>
+    {% for p in part_order %}
+    <button type="button" class="chip part-chip" data-part="{{ p }}">{{ parts[p] }}</button>
+    {% endfor %}
+  </div>
+
+  {% for p in part_order %}
+  <section class="part-section" data-section="{{ p }}">
+    <h2>{{ parts[p] }}</h2>
+    <ul class="ex-grid">
+      {% for ex in exercises if ex.part == p %}
+      <li class="ex-item" data-level="{{ ex.level }}" data-part="{{ ex.part }}">
+        <span><a href="/exercise/{{ ex.slug }}">{{ ex.name }}</a>
+          {% if member and ex.slug in this_week and ex.level == default_level %}
+          <span class="badge">this week</span>{% endif %}</span>
+        <span class="sets">{{ ex.sets }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+
+  <footer>
+    {% if not member %}<p>Like what you see? <a href="/">Get it as a weekly
+    plan →</a></p>{% endif %}
+  </footer>
+</div>
+
+<script>
+(function () {
+  let level = "{{ default_level }}";
+  let part = "all";
+
+  function apply() {
+    document.querySelectorAll(".ex-item").forEach(li => {
+      li.hidden = li.dataset.level !== level ||
+                  (part !== "all" && li.dataset.part !== part);
+    });
+    document.querySelectorAll(".part-section").forEach(sec => {
+      sec.hidden = !sec.querySelector(".ex-item:not([hidden])");
+    });
+  }
+
+  document.querySelectorAll(".lvl-chip").forEach(c =>
+    c.addEventListener("click", () => {
+      level = c.dataset.level;
+      document.querySelectorAll(".lvl-chip").forEach(x =>
+        x.classList.toggle("on", x === c));
+      apply();
+    }));
+  document.querySelectorAll(".part-chip").forEach(c =>
+    c.addEventListener("click", () => {
+      part = c.dataset.part;
+      document.querySelectorAll(".part-chip").forEach(x =>
+        x.classList.toggle("on", x === c));
+      apply();
+    }));
+  apply();
+})();
+</script>
+</body>
+</html>

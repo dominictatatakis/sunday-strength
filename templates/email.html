@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<body style="margin:0;padding:0;background:#f4f4f5;">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#18181b;">
+  <div style="background:#ffffff;border-radius:12px;padding:28px;">
+    <h1 style="font-size:20px;margin:0 0 4px;">Your week — week {{ plan.week }}</h1>
+    {% if intro %}
+    <p style="margin:0 0 12px;color:#18181b;font-size:14px;background:#f0fdf4;border-radius:8px;padding:10px 12px;">
+      {{ intro }}</p>
+    {% endif %}
+    <p style="margin:0 0 20px;color:#52525b;font-size:14px;">
+      {{ plan.days | length }} gym day{{ 's' if plan.days | length != 1 }}{% if plan.run %} + 1 run{% endif %}.
+      Tap any exercise for a demo.</p>
+
+    {% for day in plan.days %}
+    <h2 style="font-size:15px;margin:20px 0 8px;border-bottom:1px solid #e4e4e7;padding-bottom:4px;">
+      {{ day.title }}</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;">
+      {% for ex in day.exercises %}
+      <tr>
+        <td style="padding:5px 0;"><a href="{{ base_url }}/exercise/{{ ex.slug }}"
+            style="color:#1a7f37;text-decoration:none;font-weight:600;">{{ ex.name }}</a></td>
+        <td style="padding:5px 0;text-align:right;color:#52525b;white-space:nowrap;">{{ ex.sets }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endfor %}
+
+    {% if plan.run %}
+    <h2 style="font-size:15px;margin:20px 0 8px;border-bottom:1px solid #e4e4e7;padding-bottom:4px;">
+      Day {{ plan.days | length + 1 }} — Run</h2>
+    <p style="font-size:14px;margin:0;">{{ plan.run }}</p>
+    {% endif %}
+
+    <h2 style="font-size:15px;margin:24px 0 8px;">How to run the week</h2>
+    <ul style="font-size:13px;color:#52525b;padding-left:18px;margin:0;">
+      {% for note in plan.notes %}<li style="margin-bottom:4px;">{{ note }}</li>{% endfor %}
+    </ul>
+  </div>
+
+  <p style="font-size:12px;color:#a1a1aa;text-align:center;margin-top:16px;">
+    Not medical advice — train within your limits.<br>
+    <a href="{{ manage_url }}" style="color:#a1a1aa;">Manage or cancel your subscription</a>
+  </p>
+</div>
+</body>
+</html>

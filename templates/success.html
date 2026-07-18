@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>You're in — Sunday Strength</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="wrap narrow">
+  <nav class="top">
+    <a href="/" style="text-decoration:none;"><span class="wordmark">Sunday<em>Strength</em></span></a>
+  </nav>
+  <div class="panel" style="text-align:center;">
+    <p style="font-size:2.5rem;">💪</p>
+    <h2>You're in</h2>
+    <p>A <strong>welcome email with a sample week</strong> is already on its
+    way, so you can start today. Your first full plan lands
+    <strong>this Sunday evening</strong>.</p>
+    {% if dev_mode %}<p class="mini" style="margin-top:.75rem;"><em>(Dev mode — no payment was taken.)</em></p>{% endif %}
+    <p style="margin-top:1.25rem;"><a class="btn secondary" href="/account">Your account →</a></p>
+  </div>
+</div>
+</body>
+</html>

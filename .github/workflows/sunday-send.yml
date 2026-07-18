@@ -1,0 +1,19 @@
+name: Sunday send
+
+on:
+  schedule:
+    - cron: "0 17 * * 0"   # 17:00 UTC Sunday = 18:00 UK in summer, 17:00 in winter
+  workflow_dispatch: {}     # manual trigger from the Actions tab
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger the weekly send
+        run: |
+          curl -fsS -X POST "$APP_URL/admin/send-weekly" \
+            -H "X-Admin-Token: $ADMIN_TOKEN" \
+            --retry 3 --retry-delay 30 --max-time 300
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}

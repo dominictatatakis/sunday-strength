@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+jinja2
+python-multipart
+httpx
+stripe
+psycopg2-binary

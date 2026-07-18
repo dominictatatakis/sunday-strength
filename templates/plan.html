@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>This week — Sunday Strength</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="wrap">
+  {% include "_nav.html" %}
+  <h1 style="font-size:2rem;">Your week — week {{ week }}</h1>
+  <p class="lede" style="margin-bottom:1.75rem;">
+    {{ plan.days | length }} gym day{{ 's' if plan.days | length != 1 }}{% if plan.run %} + 1 run{% endif %}
+    · {{ sub.experience }} · tap any exercise for a demo.</p>
+
+  <div class="days">
+    {% for day in plan.days %}
+    <div class="day">
+      <h3>{{ day.title }}</h3>
+      {% for ex in day.exercises %}
+      <div class="ex-row">
+        <a href="/exercise/{{ ex.slug }}">{{ ex.name }}</a>
+        <span class="sets">{{ ex.sets }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+    {% if plan.run %}
+    <div class="day">
+      <h3>Day {{ plan.days | length + 1 }} — Run</h3>
+      <p style="font-size:.93rem;">{{ plan.run }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="panel" style="margin-top:1.5rem;">
+    <h2 style="font-size:1rem;">How to run the week</h2>
+    <ul style="padding-left:1.2rem;color:var(--muted);font-size:.92rem;">
+      {% for note in plan.notes %}<li style="margin-bottom:.25rem;">{{ note }}</li>{% endfor %}
+    </ul>
+  </div>
+
+  <footer>
+    <p>This is the same plan as your Sunday email — it updates automatically
+    each week and whenever you change your <a href="/account">settings</a>.</p>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your account — Sunday Strength</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="wrap narrow">
+  {% include "_nav.html" %}
+  <div class="panel">
+    <h2>Your plan</h2>
+    <p class="mini">{{ sub.email }} ·
+      <span class="status {{ '' if sub.status == 'active' else 'off' }}">{{ sub.status }}</span>
+      · {{ '£5/month' if sub.plan == 'monthly' else '£12/quarter' }}</p>
+
+    {% if saved %}<p class="notice ok">Saved — your next Sunday email will use
+    these settings.</p>{% endif %}
+
+    <form method="post" action="/account" class="step-body" style="margin-top:1.25rem;">
+      <div class="row">
+        <div>
+          <label for="days">Gym days per week</label>
+          <select id="days" name="days">
+            {% for d in day_options %}
+            <option value="{{ d }}" {{ 'selected' if sub.days_per_week == d }}>{{ d }} days</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="experience">Experience</label>
+          <select id="experience" name="experience">
+            {% for lvl in levels %}
+            <option value="{{ lvl }}" {{ 'selected' if sub.experience == lvl }}>{{ lvl | capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <label style="font-weight:400;"><input type="checkbox" name="include_run" value="true"
+        {{ 'checked' if sub.include_run }}> Include a run/cardio day</label>
+      <button type="submit">Save changes</button>
+    </form>
+
+    <div class="links">
+      <a href="/account/plan">See this week's plan →</a>
+      <a href="/exercises">Browse your exercises →</a>
+      <a href="/billing">Manage billing / change plan / cancel →</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ name }} — Sunday Strength</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="wrap narrow">
+  <nav class="top">
+    <a href="/" style="text-decoration:none;"><span class="wordmark">Sunday<em>Strength</em></span></a>
+  </nav>
+  <div class="panel">
+    <h2>{{ name }}</h2>
+    {% if images %}
+    <div class="imgs">
+      {% for img in images %}<img src="/static/exercises/{{ img }}" alt="{{ name }} demonstration">{% endfor %}
+    </div>
+    {% endif %}
+    {% if instructions %}
+    <h2 style="font-size:1rem;margin-top:1rem;">How to do it</h2>
+    <ol class="steps">{% for step in instructions %}<li>{{ step }}</li>{% endfor %}</ol>
+    {% else %}
+    <p class="mini">Demo images for this movement are on their way.</p>
+    {% endif %}
+    <p style="margin-top:1.25rem;"><a class="btn secondary" href="{{ youtube_url }}"
+      target="_blank" rel="noopener">▶ Watch demo videos on YouTube</a></p>
+  </div>
+</div>
+</body>
+</html>

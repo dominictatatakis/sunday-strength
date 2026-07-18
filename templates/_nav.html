@@ -1,0 +1,13 @@
+<nav class="top">
+  <a href="/" style="text-decoration:none;"><span class="wordmark">Sunday<em>Strength</em></span></a>
+  <span class="navlinks">
+    {% if sub %}
+    <a href="/account/plan" {% if active == 'plan' %}class="on"{% endif %}>This week</a>
+    <a href="/exercises" {% if active == 'exercises' %}class="on"{% endif %}>Exercises</a>
+    <a href="/account" {% if active == 'settings' %}class="on"{% endif %}>Settings</a>
+    <a href="/logout">Sign out</a>
+    {% else %}
+    <a href="/login">Sign in</a>
+    {% endif %}
+  </span>
+</nav>

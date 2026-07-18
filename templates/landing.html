@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sunday Strength — your gym week, in your inbox</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <span class="wordmark">Sunday<em>Strength</em></span>
+    <span class="navlinks">
+      <a href="/login">Sign in</a>
+    </span>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <p class="eyebrow">£5/month · no app · cancel anytime</p>
+      <h1>Your gym week.<br>In your inbox.<br><span class="accent">Sunday night.</span></h1>
+      <p class="lede">Tell us how many days you can train and your experience
+      level. Every Sunday you get one email with your exact week — exercises,
+      sets, reps, and a demo for every movement. Fresh rotation every week.</p>
+      <p style="margin-top:1.5rem;"><a class="btn" href="#signup">Start my plan →</a></p>
+      <p class="mini" style="margin-top:.75rem;">A sample week lands in your inbox the moment you join.</p>
+    </div>
+    <div class="preview" aria-hidden="true">
+      <div class="from">
+        <div class="avatar">SS</div>
+        <div>
+          <div class="subject">Your gym week — week 30</div>
+          <div class="meta">Sunday Strength · Sun 19:00</div>
+        </div>
+      </div>
+      <h3>Day 1 — Legs &amp; core</h3>
+      <div class="ex"><b>Goblet squat</b><span>3 × 10–12</span></div>
+      <div class="ex"><b>Romanian deadlift</b><span>3 × 8–10</span></div>
+      <div class="ex"><b>Bulgarian split squat</b><span>2 × 8–10</span></div>
+      <h3>Day 2 — Push</h3>
+      <div class="ex"><b>Bench press</b><span>3 × 8–10</span></div>
+      <div class="ex"><b>Overhead press</b><span>3 × 8–10</span></div>
+      <h3>Day 3 — Pull</h3>
+      <div class="ex"><b>Lat pulldown</b><span>3 × 10–12</span></div>
+      <div class="ex"><b>Barbell row</b><span>3 × 8–10</span></div>
+      <h3>Day 4 — Run</h3>
+      <div class="ex"><b>Intervals</b><span>30 min</span></div>
+    </div>
+  </header>
+
+  <section class="feats">
+    <div class="feat"><span class="ico">📬</span><b>One email. Zero thinking.</b>
+      <p>No app to open, nothing to log. Your week arrives Sunday night, ready to follow.</p></div>
+    <div class="feat"><span class="ico">🔁</span><b>Never goes stale.</b>
+      <p>The structure stays constant so you progress; the exercises rotate so you don't get bored.</p></div>
+    <div class="feat"><span class="ico">🎯</span><b>Built to your level.</b>
+      <p>2–5 days a week, beginner to experienced, optional run day. Change it any time.</p></div>
+  </section>
+
+  {% if dev_mode %}<p class="notice dev">Free preview — Sunday Strength is in
+  beta, so payments are switched off and everything is free while we polish
+  it. Try it and tell us what you think.</p>{% endif %}
+  {% if sso_error %}<p class="notice err">Google sign-in didn't complete — try again, or use email and password.</p>{% endif %}
+
+  <section id="signup" class="panel">
+    <form method="post" action="/subscribe" id="signup-form">
+      <div class="dots">
+        <span class="dot on" data-dot="0"></span>
+        <span class="dot" data-dot="1"></span>
+        <span class="dot" data-dot="2"></span>
+        <span id="stepname">Step 1 of 3 — Your journey</span>
+      </div>
+
+      <!-- Step 1: journey -->
+      <section class="step" data-step="0">
+        <div class="step-body">
+          <div class="row">
+            <div>
+              <label for="days">Gym days per week</label>
+              <select id="days" name="days">
+                <option value="2">2 days</option>
+                <option value="3" selected>3 days</option>
+                <option value="4">4 days</option>
+                <option value="5">5 days</option>
+              </select>
+            </div>
+            <div>
+              <label for="experience">Experience</label>
+              <select id="experience" name="experience">
+                <option value="beginner">New to the gym</option>
+                <option value="intermediate" selected>Been going a while</option>
+                <option value="advanced">Experienced lifter</option>
+              </select>
+            </div>
+          </div>
+          <label style="font-weight:400;"><input type="checkbox" name="include_run"
+            id="include_run" value="true" checked> Add one run/cardio day to my week</label>
+        </div>
+        <div class="nav">
+          <span></span>
+          <button type="button" data-next>Next: pick your plan →</button>
+        </div>
+      </section>
+
+      <!-- Step 2: plan -->
+      <section class="step" data-step="1" hidden>
+        <div class="cards">
+          <label><input type="radio" name="plan" value="monthly" checked>
+            <strong>£5</strong>/month<br><small>Cancel anytime</small></label>
+          <label><input type="radio" name="plan" value="quarterly">
+            <strong>£12</strong>/quarter<br><small>£4/month — save 20%</small></label>
+        </div>
+        <div class="nav">
+          <button type="button" class="secondary" data-back>← Back</button>
+          <button type="button" data-next>Next: create your account →</button>
+        </div>
+      </section>
+
+      <!-- Step 3: account, then payment -->
+      <section class="step" data-step="2" hidden>
+        <div class="step-body">
+          <p class="summary" id="summary"></p>
+          {% if google_enabled %}
+          <button type="submit" class="google" formaction="/subscribe/google" formnovalidate>
+            <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.7 1.22 9.19 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            Continue with Google
+          </button>
+          <p class="or">or create an account with email</p>
+          {% endif %}
+          <div>
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required placeholder="you@example.com">
+          </div>
+          <div>
+            <label for="password">Choose a password</label>
+            <input type="password" id="password" name="password" required minlength="8"
+                   autocomplete="new-password" placeholder="8+ characters">
+          </div>
+          <button type="submit">{{ 'Create my account →' if dev_mode else 'Create account & continue to payment →' }}</button>
+        </div>
+        <div class="nav">
+          <button type="button" class="secondary" data-back>← Back</button>
+          <span></span>
+        </div>
+      </section>
+    </form>
+  </section>
+
+  <section class="how">
+    <div class="step-card"><b>Pick your journey</b>Days per week, experience
+      level, and whether you want a run day.</div>
+    <div class="step-card"><b>Get your week every Sunday</b>One email, your
+      whole week. Tap any exercise for a demo page.</div>
+    <div class="step-card"><b>Show up and follow it</b>The thinking is done.
+      Progress by adding a little weight or a rep each week.</div>
+  </section>
+
+  <h2>Questions</h2>
+  <details><summary>What if I miss a day?</summary>
+    <p>Nothing breaks. Do the sessions you can in order — three good days beats
+    four rushed ones. Next Sunday brings a fresh week regardless.</p></details>
+  <details><summary>Can I change my days or level later?</summary>
+    <p>Yes — sign in any time and change days, level, or the run day. Your next
+    Sunday email uses the new settings.</p></details>
+  <details><summary>How do I cancel?</summary>
+    <p>From your account page or the link at the bottom of any email. Two
+    clicks, no emails-begging-you-to-stay.</p></details>
+
+  <footer>
+    <p>Members get the full exercise library — every movement with photos and
+    step-by-step instructions, filterable by difficulty and body part.</p>
+    <p>Not medical advice — check with a doctor before starting a new exercise
+    programme, and train within your limits. <a href="/terms">Terms</a>.</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  const steps = Array.from(document.querySelectorAll(".step"));
+  const dots = Array.from(document.querySelectorAll(".dot"));
+  const names = ["Step 1 of 3 — Your journey",
+                 "Step 2 of 3 — Your plan",
+                 "Step 3 of 3 — Your account"];
+  let current = 0;
+
+  function show(n) {
+    current = n;
+    steps.forEach((s, i) => s.hidden = i !== n);
+    dots.forEach((d, i) => d.classList.toggle("on", i <= n));
+    document.getElementById("stepname").textContent = names[n];
+    if (n === 2) {
+      const days = document.getElementById("days").value;
+      const exp = document.getElementById("experience");
+      const run = document.getElementById("include_run").checked;
+      const plan = document.querySelector('input[name="plan"]:checked').value;
+      document.getElementById("summary").textContent =
+        "Your week: " + days + " gym days · " +
+        exp.options[exp.selectedIndex].text.toLowerCase() +
+        (run ? " · +1 run day" : "") + " · " +
+        (plan === "monthly" ? "£5/month" : "£12/quarter");
+    }
+  }
+
+  document.querySelectorAll("[data-next]").forEach(b =>
+    b.addEventListener("click", () => show(current + 1)));
+  document.querySelectorAll("[data-back]").forEach(b =>
+    b.addEventListener("click", () => show(current - 1)));
+})();
+</script>
+</body>
+</html>
