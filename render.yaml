@@ -18,3 +18,9 @@ services:
         sync: false          # paste from resend.com -> API Keys
       - key: EMAIL_FROM
         value: Sunday Strength <onboarding@resend.dev>
+      # Beta option: Gmail SMTP sends from your own address to anyone
+      # (~500/day). Takes priority over Resend when both are set.
+      - key: GMAIL_USER
+        sync: false          # e.g. you@gmail.com (blank = use Resend)
+      - key: GMAIL_APP_PASSWORD
+        sync: false          # Google Account -> Security -> App passwords
