@@ -55,6 +55,9 @@
       <p>The structure stays constant so you progress; the exercises rotate so you don't get bored.</p></div>
     <div class="feat"><span class="ico">🎯</span><b>Built to your level.</b>
       <p>2–5 days a week, beginner to experienced, optional run day. Change it any time.</p></div>
+    <div class="feat"><span class="ico">🏋️</span><b>Fits your gym — or your front room.</b>
+      <p>Full gym, dumbbells at home, or nothing at all. And every exercise
+      comes with a swap for when the machine is taken.</p></div>
   </section>
 
   {% if dev_mode %}<p class="notice dev">Free preview — Sunday Strength is in
@@ -92,6 +95,14 @@
                 <option value="advanced">Experienced lifter</option>
               </select>
             </div>
+          </div>
+          <div>
+            <label for="equipment">What can you train with?</label>
+            <select id="equipment" name="equipment">
+              <option value="full" selected>Full gym — machines, cables, barbells</option>
+              <option value="dumbbells">Dumbbells / home weights only</option>
+              <option value="bodyweight">Nothing — bodyweight only</option>
+            </select>
           </div>
           <label style="font-weight:400;"><input type="checkbox" name="include_run"
             id="include_run" value="true" checked> Add one run/cardio day to my week</label>
@@ -160,8 +171,13 @@
     <p>Nothing breaks. Do the sessions you can in order — three good days beats
     four rushed ones. Next Sunday brings a fresh week regardless.</p></details>
   <details><summary>Can I change my days or level later?</summary>
-    <p>Yes — sign in any time and change days, level, or the run day. Your next
-    Sunday email uses the new settings.</p></details>
+    <p>Yes — sign in any time and change days, level, equipment, or the run
+    day. Your next Sunday email uses the new settings.</p></details>
+  <details><summary>What if the machine I need is taken?</summary>
+    <p>Every exercise in your email lists a swap or two that trains the same
+    thing — tap either one for photos and instructions. And if you tell us you
+    only have dumbbells (or nothing at all), the whole plan is built from what
+    you actually have.</p></details>
   <details><summary>How do I cancel?</summary>
     <p>From your account page or the link at the bottom of any email. Two
     clicks, no emails-begging-you-to-stay.</p></details>
@@ -192,10 +208,12 @@
       const days = document.getElementById("days").value;
       const exp = document.getElementById("experience");
       const run = document.getElementById("include_run").checked;
+      const kit = document.getElementById("equipment");
       const plan = document.querySelector('input[name="plan"]:checked').value;
       document.getElementById("summary").textContent =
         "Your week: " + days + " gym days · " +
-        exp.options[exp.selectedIndex].text.toLowerCase() +
+        exp.options[exp.selectedIndex].text.toLowerCase() + " · " +
+        kit.options[kit.selectedIndex].text.toLowerCase() +
         (run ? " · +1 run day" : "") + " · " +
         (plan === "monthly" ? "£5/month" : "£12/quarter");
     }

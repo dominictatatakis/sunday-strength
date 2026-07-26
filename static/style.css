@@ -75,6 +75,53 @@ body {
 .day .ex-row a { text-decoration: none; font-weight: 600; }
 .day .ex-row a:hover { text-decoration: underline; }
 .day .ex-row .sets { color: var(--muted); white-space: nowrap; font-size: .85rem; }
+.day .swap { font-size: .78rem; color: var(--muted); margin: -.1rem 0 .35rem; }
+
+/* ticking exercises off */
+.day .done-row { align-items: center; }
+.day .tick { display: flex; align-items: center; gap: .5rem; font-weight: 600; }
+.day .tick input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent, #1a7f37);
+                   flex: none; cursor: pointer; }
+.day .tick input:checked + a { color: var(--muted); text-decoration: line-through; }
+.day .log { display: flex; align-items: center; gap: .4rem; margin: 0 0 .4rem 1.55rem; }
+.day .log input { width: 4.4rem; padding: .18rem .4rem; font-size: .8rem;
+                  border-radius: 7px; border: 1px solid var(--line);
+                  background: transparent; color: inherit; }
+.day .log .last { font-size: .74rem; color: var(--muted); }
+.day .log .savedtag { font-size: .72rem; font-weight: 700; color: #1a7f37; }
+/* The Save buttons only exist for the no-JavaScript path; when the script
+   runs it stamps .js on <html> and saving happens on change instead. */
+.day .savebtn { padding: .18rem .6rem; font-size: .76rem; border-radius: 7px;
+                width: auto; margin: 0; }
+html.js .day .savebtn { display: none; }
+/* flex, not float: long day titles wrap without shunting the badge into the
+   first exercise row */
+.day h3 { display: flex; justify-content: space-between;
+          align-items: baseline; gap: .6rem; }
+.day h3 .progress { flex: none; font-size: .72rem; font-weight: 600;
+                    color: var(--muted); text-transform: uppercase;
+                    letter-spacing: .05em; white-space: nowrap; }
+.day h3 .progress.all { color: #1a7f37; }
+.savestate { font-size: .78rem; margin-left: .5rem; }
+.savestate.ok { color: #1a7f37; }
+.savestate.bad { color: #b91c1c; }
+
+/* API key panel */
+pre.apikey { background: var(--panel); border: 1px solid var(--line);
+             border-radius: 9px; padding: .6rem .75rem; font-size: .8rem;
+             overflow-x: auto; margin: .5rem 0 0; user-select: all; }
+pre.apikey.code { font-size: .74rem; line-height: 1.5; user-select: text;
+                  color: var(--muted); }
+.day .swap a { color: var(--muted); text-decoration: none; border-bottom: 1px dotted currentColor; }
+.day .swap a:hover { color: inherit; }
+
+/* exercise page: swaps for when the machine is taken */
+ul.swaps { list-style: none; padding: 0; margin: .6rem 0 0;
+           display: flex; flex-wrap: wrap; gap: .45rem; }
+ul.swaps a { display: inline-block; text-decoration: none; font-size: .88rem;
+             font-weight: 600; padding: .3rem .7rem; border-radius: 999px;
+             border: 1px solid var(--line); background: var(--panel); }
+ul.swaps a:hover { border-color: currentColor; }
 
 /* --- type --------------------------------------------------------------- */
 h1 {

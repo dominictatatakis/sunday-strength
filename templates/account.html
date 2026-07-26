@@ -37,6 +37,14 @@
           </select>
         </div>
       </div>
+      <div>
+        <label for="equipment">What you can train with</label>
+        <select id="equipment" name="equipment">
+          {% for opt in equipment_options %}
+          <option value="{{ opt }}" {{ 'selected' if equipment == opt }}>{{ equipment_names[opt] }}</option>
+          {% endfor %}
+        </select>
+      </div>
       <label style="font-weight:400;"><input type="checkbox" name="include_run" value="true"
         {{ 'checked' if sub.include_run }}> Include a run/cardio day</label>
       <button type="submit">Save changes</button>
@@ -47,6 +55,47 @@
       <a href="/exercises">Browse your exercises →</a>
       <a href="/billing">Manage billing / change plan / cancel →</a>
     </div>
+  </div>
+
+  <div class="panel" style="margin-top:1rem;">
+    <h2>API key</h2>
+    <p class="mini">For reading your plan and workout log from your own apps
+      and scripts. Ticking exercises off on the plan page doesn't need one —
+      that uses your sign-in.</p>
+
+    {% if new_api_key %}
+    <p class="notice ok" style="margin-top:.9rem;">Here's your key. Copy it now —
+      only a hash is stored, so it can't be shown again.</p>
+    <pre class="apikey">{{ new_api_key }}</pre>
+    {% endif %}
+
+    <form method="post" action="/account/api-key" style="margin-top:.9rem;">
+      <button type="submit" class="secondary">
+        {{ 'Replace my API key' if has_api_key else 'Create an API key' }}</button>
+      {% if has_api_key and not new_api_key %}
+      <p class="mini" style="margin-top:.5rem;">A key already exists. Replacing
+        it immediately stops the old one working.</p>
+      {% endif %}
+    </form>
+
+    <details style="margin-top:1rem;">
+      <summary>How to use it</summary>
+      <pre class="apikey code">curl -H "Authorization: Bearer YOUR_KEY" \
+  {{ request.base_url }}api/v1/plan
+
+# tick an exercise off, with the load you used
+curl -X POST {{ request.base_url }}api/v1/completions \
+  -H "Authorization: Bearer YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"day": 1, "slug": "bench-press", "weight_kg": 60, "reps": 8}'
+
+# everything you've logged, newest first
+curl -H "Authorization: Bearer YOUR_KEY" \
+  {{ request.base_url }}api/v1/completions?limit=50</pre>
+      <p class="mini">Also available: <code>/api/v1/me</code>. Add
+        <code>?week=2026-W30</code> to <code>/api/v1/plan</code> for any other
+        week.</p>
+    </details>
   </div>
 </div>
 </body>

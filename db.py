@@ -9,11 +9,21 @@ import json
 import os
 import secrets
 import sqlite3
+import threading
 import time
 
 DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "gymdigest.db"))
 DATABASE_URL = os.environ.get("DATABASE_URL", "")  # Postgres in production
-SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-change-me")
+
+SECRET_KEY = os.environ.get("SECRET_KEY", "")
+if not SECRET_KEY:
+    # Never fall back to a shared constant: anyone who knows it can forge a
+    # session cookie for any account. A per-process key is safe; it just means
+    # logins and manage links don't survive a restart.
+    SECRET_KEY = secrets.token_hex(32)
+    print("WARNING: SECRET_KEY is not set — using a random one for this "
+          "process. Sign-ins and email manage links will stop working on "
+          "restart. Set SECRET_KEY (openssl rand -hex 32) in .env.")
 
 SCHEMA_PG = """
 CREATE TABLE IF NOT EXISTS subscribers (
@@ -22,6 +32,7 @@ CREATE TABLE IF NOT EXISTS subscribers (
     days_per_week INTEGER NOT NULL,
     experience TEXT NOT NULL,
     include_run INTEGER NOT NULL DEFAULT 0,
+    equipment TEXT NOT NULL DEFAULT 'full',
     plan TEXT NOT NULL DEFAULT 'monthly',
     password_hash TEXT,
     status TEXT NOT NULL DEFAULT 'pending',
@@ -33,11 +44,38 @@ CREATE TABLE IF NOT EXISTS subscribers (
 CREATE TABLE IF NOT EXISTS sends (
     id SERIAL PRIMARY KEY,
     subscriber_id INTEGER NOT NULL REFERENCES subscribers(id),
-    week INTEGER NOT NULL,
+    week TEXT NOT NULL,
     sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (subscriber_id, week)
 );
+CREATE TABLE IF NOT EXISTS completions (
+    id SERIAL PRIMARY KEY,
+    subscriber_id INTEGER NOT NULL REFERENCES subscribers(id),
+    week TEXT NOT NULL,
+    day INTEGER NOT NULL,
+    slug TEXT NOT NULL,
+    weight_kg DOUBLE PRECISION,
+    reps INTEGER,
+    done_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (subscriber_id, week, day, slug)
+);
 """
+
+# Applied once per process, after SCHEMA_PG. Each must be safe to re-run.
+MIGRATIONS_PG = [
+    "ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS password_hash TEXT",
+    "ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS equipment TEXT "
+    "NOT NULL DEFAULT 'full'",
+    "ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS api_key_hash TEXT",
+    # sends.week used to be an INTEGER ISO week number, which collides one year
+    # later and silently skips everyone. It now holds '2026-W30'.
+    """DO $$ BEGIN
+         IF EXISTS (SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'sends' AND column_name = 'week'
+                      AND data_type <> 'text')
+         THEN ALTER TABLE sends ALTER COLUMN week TYPE TEXT; END IF;
+       END $$""",
+]
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS subscribers (
@@ -46,6 +84,7 @@ CREATE TABLE IF NOT EXISTS subscribers (
     days_per_week INTEGER NOT NULL,
     experience TEXT NOT NULL,
     include_run INTEGER NOT NULL DEFAULT 0,
+    equipment TEXT NOT NULL DEFAULT 'full',  -- bodyweight | dumbbells | full
     plan TEXT NOT NULL DEFAULT 'monthly',           -- monthly | quarterly
     password_hash TEXT,
     status TEXT NOT NULL DEFAULT 'pending',         -- pending | active | past_due | cancelled
@@ -57,11 +96,32 @@ CREATE TABLE IF NOT EXISTS subscribers (
 CREATE TABLE IF NOT EXISTS sends (
     id INTEGER PRIMARY KEY,
     subscriber_id INTEGER NOT NULL REFERENCES subscribers(id),
-    week INTEGER NOT NULL,
+    week TEXT NOT NULL,                             -- '2026-W30'
     sent_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
     UNIQUE (subscriber_id, week)
 );
+-- What the subscriber actually did. The plan itself is reproducible from
+-- (week, prefs), so a completion only needs to name the slot it fills.
+CREATE TABLE IF NOT EXISTS completions (
+    id INTEGER PRIMARY KEY,
+    subscriber_id INTEGER NOT NULL REFERENCES subscribers(id),
+    week TEXT NOT NULL,                             -- '2026-W30'
+    day INTEGER NOT NULL,                           -- 1-based day in that week
+    slug TEXT NOT NULL,
+    weight_kg REAL,                                 -- both optional: a bare
+    reps INTEGER,                                   -- tick is a valid log
+    done_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+    UNIQUE (subscriber_id, week, day, slug)
+);
 """
+
+# SQLite is dynamically typed, so the sends.week int -> text change needs no
+# migration; only columns added after a database was created do.
+MIGRATIONS_SQLITE = [
+    "ALTER TABLE subscribers ADD COLUMN password_hash TEXT",
+    "ALTER TABLE subscribers ADD COLUMN equipment TEXT NOT NULL DEFAULT 'full'",
+    "ALTER TABLE subscribers ADD COLUMN api_key_hash TEXT",
+]
 
 
 class _PgConn:
@@ -73,7 +133,13 @@ class _PgConn:
 
     def execute(self, sql, params=()):
         cur = self._raw.cursor()
-        cur.execute(sql.replace("?", "%s"), params)
+        try:
+            cur.execute(sql.replace("?", "%s"), params)
+        except Exception:
+            # Leave the connection usable for the next caller: without this a
+            # failed statement poisons every later one on a reused connection.
+            self._raw.rollback()
+            raise
         return cur
 
     def commit(self):
@@ -82,43 +148,112 @@ class _PgConn:
     def rollback(self):
         self._raw.rollback()
 
+    def close(self):
+        self._raw.close()
 
-def connect():
+    @property
+    def closed(self) -> bool:
+        return bool(self._raw.closed)
+
+
+_local = threading.local()
+_schema_lock = threading.Lock()
+_schema_ready = False
+
+
+def _ensure_schema(conn) -> None:
+    """Create tables and run migrations once per process, not per connection."""
+    global _schema_ready
+    if _schema_ready:
+        return
+    with _schema_lock:
+        if _schema_ready:
+            return
+        if DATABASE_URL:
+            for stmt in SCHEMA_PG.split(";"):
+                if stmt.strip():
+                    conn.execute(stmt)
+            for stmt in MIGRATIONS_PG:
+                try:
+                    conn.execute(stmt)
+                except Exception as e:      # already applied, or not permitted
+                    print(f"migration skipped: {e}")
+        else:
+            conn.executescript(SCHEMA)
+            for stmt in MIGRATIONS_SQLITE:
+                try:
+                    conn.execute(stmt)
+                except sqlite3.OperationalError:
+                    pass                    # column already exists
+        conn.commit()
+        _schema_ready = True
+
+
+def _new_connection():
     if DATABASE_URL:
         import psycopg2
         import psycopg2.extras
         raw = psycopg2.connect(
             DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
-        conn = _PgConn(raw)
-        for stmt in SCHEMA_PG.split(";"):
-            if stmt.strip():
-                conn.execute(stmt)
-        conn.commit()
-        return conn
+        # Every call site commits per statement anyway; autocommit stops idle
+        # transactions holding a snapshot open on a long-lived connection.
+        raw.autocommit = True
+        return _PgConn(raw)
 
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    conn.executescript(SCHEMA)
-    try:  # migration for DBs created before accounts existed
-        conn.execute("ALTER TABLE subscribers ADD COLUMN password_hash TEXT")
-        conn.commit()
-    except sqlite3.OperationalError:
-        pass
     return conn
 
 
+def _usable(conn) -> bool:
+    try:
+        conn.execute("SELECT 1").fetchone()
+        return True
+    except Exception:
+        return False
+
+
+def connect():
+    """A connection for this thread, reused across requests.
+
+    FastAPI runs the sync routes in a bounded thread pool, so this caps us at
+    one database connection per worker thread instead of opening (and never
+    closing) one per request.
+    """
+    conn = getattr(_local, "conn", None)
+    if conn is not None:
+        if _usable(conn):
+            return conn
+        close(conn)                 # server hung up; replace it
+        _local.conn = None
+    conn = _new_connection()
+    _ensure_schema(conn)
+    _local.conn = conn
+    return conn
+
+
+def close(conn) -> None:
+    try:
+        conn.close()
+    except Exception:
+        pass
+
+
 def upsert_subscriber(conn, email: str, days: int, experience: str,
-                      include_run: bool, plan: str) -> int:
+                      include_run: bool, plan: str,
+                      equipment: str = "full") -> int:
     conn.execute(
-        """INSERT INTO subscribers (email, days_per_week, experience, include_run, plan)
-           VALUES (?, ?, ?, ?, ?)
+        """INSERT INTO subscribers (email, days_per_week, experience, include_run, plan, equipment)
+           VALUES (?, ?, ?, ?, ?, ?)
            ON CONFLICT(email) DO UPDATE SET
              days_per_week=excluded.days_per_week,
              experience=excluded.experience,
              include_run=excluded.include_run,
              plan=excluded.plan,
+             equipment=excluded.equipment,
              updated_at=CURRENT_TIMESTAMP""",
-        (email.lower().strip(), days, experience, int(include_run), plan))
+        (email.lower().strip(), days, experience, int(include_run), plan,
+         equipment))
     conn.commit()
     return conn.execute("SELECT id FROM subscribers WHERE email = ?",
                         (email.lower().strip(),)).fetchone()["id"]
@@ -146,8 +281,25 @@ def get_by_email(conn, email: str) -> sqlite3.Row | None:
                         (email.lower().strip(),)).fetchone()
 
 
-def record_send(conn, subscriber_id: int, week: int) -> bool:
-    """Returns False if this subscriber already got this week's email."""
+def sub_equipment(sub) -> str:
+    """A subscriber's equipment, tolerating rows written before the column."""
+    try:
+        return sub["equipment"] or "full"
+    except (KeyError, IndexError):
+        return "full"
+
+
+def week_key(year: int, week: int) -> str:
+    """The idempotency key for one send: '2026-W30'.
+
+    Includes the year — an ISO week number alone repeats every 52-53 weeks, so
+    a bare week would make the send job skip everyone from year two onwards.
+    """
+    return f"{year}-W{week:02d}"
+
+
+def record_send(conn, subscriber_id: int, week: str) -> bool:
+    """Claim this subscriber-week. False if they already got this week's email."""
     try:
         conn.execute("INSERT INTO sends (subscriber_id, week) VALUES (?, ?)",
                      (subscriber_id, week))
@@ -156,6 +308,102 @@ def record_send(conn, subscriber_id: int, week: int) -> bool:
     except Exception:  # unique violation (sqlite3 or psycopg2)
         if hasattr(conn, "rollback"):
             conn.rollback()
+        return False
+
+
+def unrecord_send(conn, subscriber_id: int, week: str) -> None:
+    """Release a claim whose email failed to send, so a re-run retries it."""
+    conn.execute("DELETE FROM sends WHERE subscriber_id = ? AND week = ?",
+                 (subscriber_id, week))
+    conn.commit()
+
+
+# --- completions: what actually got done -----------------------------------
+
+def set_completion(conn, subscriber_id: int, week: str, day: int, slug: str,
+                   weight_kg: float | None = None,
+                   reps: int | None = None) -> None:
+    """Mark one exercise done, with optional load. Re-ticking updates it."""
+    conn.execute(
+        """INSERT INTO completions (subscriber_id, week, day, slug, weight_kg, reps)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON CONFLICT(subscriber_id, week, day, slug) DO UPDATE SET
+             weight_kg = excluded.weight_kg,
+             reps = excluded.reps,
+             done_at = CURRENT_TIMESTAMP""",
+        (subscriber_id, week, day, slug, weight_kg, reps))
+    conn.commit()
+
+
+def clear_completion(conn, subscriber_id: int, week: str, day: int,
+                     slug: str) -> None:
+    conn.execute(
+        "DELETE FROM completions WHERE subscriber_id = ? AND week = ? "
+        "AND day = ? AND slug = ?", (subscriber_id, week, day, slug))
+    conn.commit()
+
+
+def completions_for_week(conn, subscriber_id: int, week: str) -> dict:
+    """{'<day>|<slug>': row} for the plan page and the API's done-flags."""
+    rows = conn.execute(
+        "SELECT * FROM completions WHERE subscriber_id = ? AND week = ?",
+        (subscriber_id, week)).fetchall()
+    return {f"{r['day']}|{r['slug']}": dict(r) for r in rows}
+
+
+def recent_completions(conn, subscriber_id: int, limit: int = 200) -> list:
+    return [dict(r) for r in conn.execute(
+        "SELECT * FROM completions WHERE subscriber_id = ? "
+        "ORDER BY id DESC LIMIT ?", (subscriber_id, limit)).fetchall()]
+
+
+def last_logged(conn, subscriber_id: int, before_week: str | None = None) -> dict:
+    """Most recent weight/reps per exercise — the 'last time: 60kg x 8' hint.
+
+    Week keys are zero-padded ('2026-W07'), so a string compare orders them
+    chronologically and `before_week` cleanly excludes the week in progress.
+    """
+    rows = conn.execute(
+        "SELECT slug, weight_kg, reps, week FROM completions "
+        "WHERE subscriber_id = ? AND (weight_kg IS NOT NULL OR reps IS NOT NULL) "
+        "ORDER BY id DESC", (subscriber_id,)).fetchall()
+    out: dict[str, dict] = {}
+    for r in rows:
+        if before_week and r["week"] >= before_week:
+            continue
+        out.setdefault(r["slug"], dict(r))
+    return out
+
+
+# --- API keys (for the plan page's own fetches and future apps) ------------
+
+def hash_api_key(key: str) -> str:
+    # Keys are 256 bits of randomness, so a plain digest is enough — there is
+    # nothing to brute-force, unlike a user-chosen password.
+    return hashlib.sha256(key.encode()).hexdigest()
+
+
+def issue_api_key(conn, email: str) -> str:
+    """Generate, store the hash, and return the key. Shown to the user once."""
+    key = "ss_" + secrets.token_urlsafe(32)
+    conn.execute(
+        "UPDATE subscribers SET api_key_hash = ?, updated_at = CURRENT_TIMESTAMP "
+        "WHERE email = ?", (hash_api_key(key), email.lower().strip()))
+    conn.commit()
+    return key
+
+
+def get_by_api_key(conn, key: str):
+    if not key:
+        return None
+    return conn.execute("SELECT * FROM subscribers WHERE api_key_hash = ?",
+                        (hash_api_key(key),)).fetchone()
+
+
+def has_api_key(sub) -> bool:
+    try:
+        return bool(sub["api_key_hash"])
+    except (KeyError, IndexError):
         return False
 
 
@@ -188,12 +436,12 @@ def set_password(conn, email: str, password: str) -> None:
 
 
 def update_prefs(conn, email: str, days: int, experience: str,
-                 include_run: bool) -> None:
+                 include_run: bool, equipment: str = "full") -> None:
     conn.execute(
         """UPDATE subscribers SET days_per_week = ?, experience = ?,
-             include_run = ?, updated_at = CURRENT_TIMESTAMP
+             include_run = ?, equipment = ?, updated_at = CURRENT_TIMESTAMP
            WHERE email = ?""",
-        (days, experience, int(include_run), email.lower().strip()))
+        (days, experience, int(include_run), equipment, email.lower().strip()))
     conn.commit()
 
 

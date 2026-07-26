@@ -23,7 +23,8 @@ def render_plan_email(sub, week: int, intro: str | None = None,
                       subject: str | None = None) -> tuple[str, str, str]:
     """Returns (subject, html, text) for one subscriber's weekly plan."""
     plan = engine.generate_plan(week, sub["days_per_week"], sub["experience"],
-                                bool(sub["include_run"]))
+                                bool(sub["include_run"]),
+                                db.sub_equipment(sub))
     manage_url = f"{APP_BASE_URL}/manage?token={db.sign_email(sub['email'])}"
     html = _env.get_template("email.html").render(
         plan=plan, base_url=APP_BASE_URL, manage_url=manage_url, intro=intro)

@@ -42,7 +42,7 @@ ALIASES = {
     "romanian-deadlift": "Romanian Deadlift",
     "dumbbell-romanian-deadlift": "Stiff-Legged Dumbbell Deadlift",
     "hip-thrust": "Barbell Hip Thrust",
-    "kettlebell-swing": "Kettlebell Swing",
+    "kettlebell-swing": "One-Arm Kettlebell Swings",  # no two-arm swing in the db
     "dumbbell-lunge": "Dumbbell Lunges",
     "walking-lunge": "Dumbbell Walking Lunge",
     "bulgarian-split-squat": "Split Squat with Dumbbells",
@@ -98,6 +98,36 @@ ALIASES = {
     "barbell-curl": "Barbell Curl",
     "hammer-curl": "Hammer Curls",
     "incline-dumbbell-curl": "Incline Dumbbell Curl",
+    # bodyweight / home-kit options
+    "inverted-row": "Inverted Row",
+    "superman": "Superman",
+    "pike-push-up": None,        # not in free-exercise-db; see EXTRA below
+    "bench-dip": "Bench Dips",
+    "diamond-push-up": "Push-Ups - Close Triceps Position",
+    "decline-push-up": "Decline Push-Up",
+    "dumbbell-pullover": "Straight-Arm Dumbbell Pullover",
+}
+
+# Movements free-exercise-db doesn't carry. Our own words, so no licence
+# question; alias them to None above so fuzzy matching can't grab something
+# unrelated (it offered "Pin Presses" for the pike push-up).
+EXTRA: dict[str, dict] = {
+    "pike-push-up": {
+        "name": "Pike push-up",
+        "instructions": [
+            "Start in a push-up position, then walk your feet in and lift your "
+            "hips so your body makes an upside-down V.",
+            "Your hands should be a little wider than your shoulders, head "
+            "between your arms, looking back towards your feet.",
+            "Bend your elbows and lower the crown of your head towards the "
+            "floor between your hands. Keep your hips high.",
+            "Stop just before your head touches, then press back up until your "
+            "arms are straight.",
+            "To make it harder, put your feet on a step, chair or sofa "
+            "(elevated pike push-up) - the higher the feet, the more weight "
+            "goes through your shoulders.",
+        ],
+    },
 }
 
 
@@ -112,7 +142,11 @@ def main() -> None:
     out: dict[str, dict] = {}
     misses: list[str] = []
     for slug in sorted(engine.all_slugs()):
-        target = ALIASES.get(slug, slug.replace("-", " ")).lower()
+        if slug in EXTRA:
+            out[slug] = {"images": [], **EXTRA[slug]}
+            print(f"  ok: {slug} -> {EXTRA[slug]['name']} (our own copy)")
+            continue
+        target = (ALIASES.get(slug) or slug.replace("-", " ")).lower()
         ex = by_name.get(target)
         if ex is None:
             close = difflib.get_close_matches(target, names, n=1, cutoff=0.75)

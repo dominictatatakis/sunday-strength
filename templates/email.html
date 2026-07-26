@@ -22,6 +22,13 @@
             style="color:#1a7f37;text-decoration:none;font-weight:600;">{{ ex.name }}</a></td>
         <td style="padding:5px 0;text-align:right;color:#52525b;white-space:nowrap;">{{ ex.sets }}</td>
       </tr>
+      {% if ex.alts %}
+      <tr>
+        <td colspan="2" style="padding:0 0 6px;font-size:12px;color:#a1a1aa;">
+          Taken? {% for a in ex.alts %}<a href="{{ base_url }}/exercise/{{ a.slug }}"
+            style="color:#a1a1aa;">{{ a.name }}</a>{{ " or " if not loop.last }}{% endfor %}</td>
+      </tr>
+      {% endif %}
       {% endfor %}
     </table>
     {% endfor %}

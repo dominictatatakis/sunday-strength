@@ -27,7 +27,8 @@
   <p class="lede" style="margin-bottom:1rem;">Everything the plans draw from.
     {% if member %}Exercises marked <span class="badge">this week</span> are in
     your week {{ week }} plan.{% else %}Tap anything for photos and
-    step-by-step instructions.{% endif %}</p>
+    step-by-step instructions.{% endif %} Every one lists swaps for when the
+    machine is taken.</p>
 
   <div class="chips">
     <span class="lbl">Difficulty</span>
@@ -43,13 +44,21 @@
     <button type="button" class="chip part-chip" data-part="{{ p }}">{{ parts[p] }}</button>
     {% endfor %}
   </div>
+  <div class="chips">
+    <span class="lbl">Equipment</span>
+    {% for opt in equipment_options %}
+    <button type="button" class="chip kit-chip {{ 'on' if opt == default_equipment }}"
+            data-kit="{{ opt }}">{{ equipment_names[opt] }}</button>
+    {% endfor %}
+  </div>
 
   {% for p in part_order %}
   <section class="part-section" data-section="{{ p }}">
     <h2>{{ parts[p] }}</h2>
     <ul class="ex-grid">
       {% for ex in exercises if ex.part == p %}
-      <li class="ex-item" data-level="{{ ex.level }}" data-part="{{ ex.part }}">
+      <li class="ex-item" data-level="{{ ex.level }}" data-part="{{ ex.part }}"
+          data-kit="{{ ex.equipment }}">
         <span><a href="/exercise/{{ ex.slug }}">{{ ex.name }}</a>
           {% if member and ex.slug in this_week and ex.level == default_level %}
           <span class="badge">this week</span>{% endif %}</span>
@@ -68,13 +77,19 @@
 
 <script>
 (function () {
+  // Equipment tiers are cumulative: a full gym can also do the dumbbell and
+  // bodyweight movements, so filter on "needs no more than this".
+  const RANK = {{ equipment_options | map('string') | list | tojson }}
+                 .reduce((m, k, i) => (m[k] = i, m), {});
   let level = "{{ default_level }}";
   let part = "all";
+  let kit = "{{ default_equipment }}";
 
   function apply() {
     document.querySelectorAll(".ex-item").forEach(li => {
       li.hidden = li.dataset.level !== level ||
-                  (part !== "all" && li.dataset.part !== part);
+                  (part !== "all" && li.dataset.part !== part) ||
+                  RANK[li.dataset.kit] > RANK[kit];
     });
     document.querySelectorAll(".part-section").forEach(sec => {
       sec.hidden = !sec.querySelector(".ex-item:not([hidden])");
@@ -92,6 +107,13 @@
     c.addEventListener("click", () => {
       part = c.dataset.part;
       document.querySelectorAll(".part-chip").forEach(x =>
+        x.classList.toggle("on", x === c));
+      apply();
+    }));
+  document.querySelectorAll(".kit-chip").forEach(c =>
+    c.addEventListener("click", () => {
+      kit = c.dataset.kit;
+      document.querySelectorAll(".kit-chip").forEach(x =>
         x.classList.toggle("on", x === c));
       apply();
     }));

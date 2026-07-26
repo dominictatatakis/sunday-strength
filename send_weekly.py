@@ -25,11 +25,13 @@ import mailer
 def run(week: int | None = None, to: str | None = None,
         dry_run: bool = False) -> dict:
     """Send this week's plan to every active subscriber. Idempotent per
-    (subscriber, week). Returns stats — used by the CLI below and by the
+    (subscriber, year-week). Returns stats — used by the CLI below and by the
     /admin/send-weekly endpoint that the Sunday GitHub Action hits."""
+    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+    year, iso_week = tomorrow.isocalendar()[:2]
     if week is None:
-        tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-        week = tomorrow.isocalendar()[1]
+        week = iso_week
+    key = db.week_key(year, week)
 
     conn = db.connect()
     subs = db.active_subscribers(conn)
@@ -41,19 +43,23 @@ def run(week: int | None = None, to: str | None = None,
         subject, html, text = emails.render_plan_email(sub, week)
         if dry_run:
             print(f"--- {sub['email']} ({sub['days_per_week']}d, "
-                  f"{sub['experience']}, run={bool(sub['include_run'])}) ---")
+                  f"{sub['experience']}, {db.sub_equipment(sub)}, "
+                  f"run={bool(sub['include_run'])}) ---")
             print(text)
             print()
             continue
-        if not db.record_send(conn, sub["id"], week):
+        # Claim the slot first so a crash mid-send can't double-email, then
+        # release it again if the send fails so a re-run picks them back up.
+        if not db.record_send(conn, sub["id"], key):
             skipped += 1
             continue
         if mailer.send(sub["email"], subject, html, text):
             sent += 1
         else:
+            db.unrecord_send(conn, sub["id"], key)
             failed += 1
 
-    return {"week": week, "active": len(subs), "sent": sent,
+    return {"week": key, "active": len(subs), "sent": sent,
             "skipped": skipped, "failed": failed}
 
 

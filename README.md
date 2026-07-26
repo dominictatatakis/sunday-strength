@@ -1,9 +1,10 @@
 # Sunday Strength
 
 Your gym week, in your inbox, every Sunday night. Subscribers pick days per
-week (2–5), experience level, and an optional run day; a deterministic engine
-(grown from the personal `../weight-loss/gym_plan.py`) generates their week,
-and a Sunday job emails it. £5/month or £12/quarter via Stripe.
+week (2–5), experience level, what equipment they have, and an optional run
+day; a deterministic engine (grown from the personal
+`../weight-loss/gym_plan.py`) generates their week, and a Sunday job emails it.
+£5/month or £12/quarter via Stripe.
 
 *"Sunday Strength" is a placeholder name — everything referencing it is in
 `app.py`, the templates, and `scripts/stripe_setup.py`.*
@@ -19,12 +20,26 @@ landing page (app.py /)         Stripe Checkout            weekly cron
 ```
 
 - `engine.py` — plan generation. Deterministic per (ISO week, days, level,
-  run), rotating exercise pools per movement pattern. `python3 engine.py
-  --days 4 --level beginner` to preview any combination.
+  equipment, run), rotating exercise pools per movement pattern. `python3
+  engine.py --days 4 --level beginner --equipment bodyweight` to preview any
+  combination.
+
+  **Equipment** is one of `full` (machines, cables, barbells), `dumbbells`
+  (home weights) or `bodyweight` (nothing) — cumulative, so a full gym also
+  gets the dumbbell and bodyweight movements. Every exercise carries the
+  minimum kit it needs, and each (pattern, level, tier) has at least one
+  option, so a bodyweight subscriber gets the same week *shape*. Where two
+  slots in a day would land on the same movement (bodyweight pools are
+  narrow), the second slot is dropped rather than repeated.
+
+  **Swaps** — `ALTERNATIVES` maps each movement to ranked substitutes,
+  filtered to what the subscriber actually has. They appear under every
+  exercise in the email, on the plan page, and on each `/exercise/<slug>`
+  page: "machine taken? try these instead".
 - `app.py` — FastAPI: 3-step signup wizard (journey → plan → account →
   payment), Stripe Checkout + webhook, accounts via email+password (stdlib
-  scrypt) or Google SSO (`/login`, `/account` to change days/level/run,
-  `/billing` for the Stripe portal), signed manage/cancel links in emails,
+  scrypt) or Google SSO (`/login`, `/account` to change days/level/equipment/
+  run, `/billing` for the Stripe portal), signed manage/cancel links in emails,
   exercise demo pages, terms.
 
   Google SSO is config-gated: create an OAuth client at
@@ -38,10 +53,19 @@ landing page (app.py /)         Stripe Checkout            weekly cron
   signup activates, with a thank-you and a sample plan for the current week.
 - `send_weekly.py` — Sunday send job (Resend API; dry-runs without a key;
   idempotent per subscriber-week, safe to re-run).
-- `db.py` — SQLite (`subscribers`, `sends`) + HMAC-signed email tokens.
+- `db.py` — SQLite (`subscribers`, `sends`) + HMAC-signed email tokens. One
+  connection per worker thread, reused across requests. `sends.week` is a
+  year-scoped key (`2026-W30`), so the idempotency check can't collide with
+  the same ISO week a year later. Schema and migrations run once per process;
+  both back-ends add missing columns on boot, so deploying over an existing
+  database needs no manual step.
 - `scripts/stripe_setup.py` — one-time creation of the Stripe product/prices.
 - `scripts/fetch_exercise_media.py` — pulls public-domain instructions and
-  images for every exercise in the engine.
+  images for every exercise in the engine. `ALIASES` maps our slugs to
+  free-exercise-db names; map a slug to `None` and add an `EXTRA` entry to
+  write our own copy for a movement the dataset doesn't carry (the pike
+  push-up). Check the `fuzzy:` lines it prints — a bad guess ships the wrong
+  photos.
 
 ## Exercise content licensing (researched 18 Jul 2026)
 
@@ -127,6 +151,63 @@ that takes ~30s. Fine for a beta; £7/mo removes it later.
    add a privacy page covering Stripe + Resend as processors.
 7. VAT: digital services; you're under the UK threshold until ~£90k — revisit
    then.
+
+## Workout log + JSON API
+
+Exercises get ticked off on `/account/plan`, with optional weight and reps.
+Logging those turns on a "last: 60kg × 8" hint under the same exercise next
+time it comes round.
+
+The plan is reproducible from `(week, prefs)`, so a `completions` row only
+names the slot it fills: `(subscriber_id, week, day, slug, weight_kg, reps)`,
+unique per slot. Week keys are the same `2026-W30` format as `sends`, and
+because they're zero-padded a string compare orders them chronologically —
+that's how `last_logged(before_week=...)` excludes the week in progress.
+
+The same endpoints serve the plan page (session cookie) and anything else you
+point at them (`Authorization: Bearer ss_...`, key from `/account`). Keeping
+the browser on the API means it can't quietly rot: if ticking a box works, the
+API works.
+
+```
+GET  /api/v1/me                     prefs and status
+GET  /api/v1/plan[?week=2026-W30]   the week's plan, each exercise carrying
+                                    done / weight_kg / reps
+POST /api/v1/completions            {"day":1,"slug":"bench-press",
+                                     "weight_kg":60,"reps":8}
+                                    "done":false deletes the entry
+GET  /api/v1/completions?limit=200  raw history, newest first
+```
+
+The plan page degrades cleanly: every exercise is a real form posting to
+`/account/plan/log`, and the script intercepts the submit to call the API
+instead (hiding the Save buttons via `html.js .savebtn`). With JavaScript off
+you get a Save button per exercise and a normal page reload; both routes end up
+in the same `_apply_completion`.
+
+Writes are validated against that week's generated plan, so the table can't
+fill with exercises the subscriber was never given. Only the SHA-256 of an API
+key is stored — issuing a new one immediately revokes the old, and the key
+itself is shown exactly once.
+
+**Don't hand another app the Supabase `DATABASE_URL`.** The app connects as the
+owner role with no row-level security, so that's unscoped, unrevokable
+read/write over every subscriber. An API key is per-subscriber and rotatable.
+
+## Things that will bite if you change them
+
+- `SECRET_KEY` unset means a random key per process: sessions and email
+  manage links break on every restart. It is never a fixed default — that
+  would let anyone forge a session cookie for any account.
+- `/subscribe` refuses an email that already has an account (it would
+  otherwise reset that account's password with nothing but the address). The
+  Google path *may* update an existing row, because Google has proved the
+  address belongs to them.
+- Cancellation happens on `POST /manage/cancel`, never on the `GET` — mail
+  clients and security scanners follow links in emails.
+- The Sunday job claims `(subscriber, week)` *before* sending and releases the
+  claim if the send fails, so a crash can't double-email and a provider outage
+  is still retryable.
 
 ## Roadmap (not built yet)
 

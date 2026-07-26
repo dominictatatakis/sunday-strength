@@ -10,15 +10,18 @@ from __future__ import annotations
 
 import envfile  # noqa: F401  (must load .env before the imports below)
 
+import datetime
 import json
 import os
 import urllib.parse
+from html import escape as html_escape
 
 import httpx
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 
 import db
 import emails
@@ -97,7 +100,8 @@ def _session_email(request: Request) -> str | None:
 def _login_response(email: str, target: str) -> RedirectResponse:
     resp = RedirectResponse(target, status_code=303)
     resp.set_cookie(SESSION_COOKIE, db.sign_email(email), httponly=True,
-                    max_age=SESSION_MAX_AGE, samesite="lax")
+                    max_age=SESSION_MAX_AGE, samesite="lax",
+                    secure=APP_BASE_URL.startswith("https"))
     return resp
 
 
@@ -112,6 +116,10 @@ def _finish_signup(conn, email: str) -> RedirectResponse:
         _send_welcome_safe(conn, email)
         return _login_response(email, "/success?dev=1")
     sub = db.get_by_email(conn, email)
+    if sub and sub["status"] == "active":
+        # Already paying (e.g. signed up again through Google) — don't open a
+        # second subscription, just sign them in.
+        return _login_response(email, "/account")
     session = stripe.checkout.Session.create(
         mode="subscription",
         line_items=[{"price": PRICE_IDS[sub["plan"]], "quantity": 1}],
@@ -123,23 +131,30 @@ def _finish_signup(conn, email: str) -> RedirectResponse:
     return _login_response(email, session.url)
 
 
-def _valid_prefs(days: int, experience: str, plan: str) -> bool:
+def _valid_prefs(days: int, experience: str, plan: str,
+                 equipment: str = "full") -> bool:
     return (days in engine.SPLITS and experience in engine.LEVELS
-            and plan in PRICE_IDS)
+            and plan in PRICE_IDS and equipment in engine.EQUIPMENT_RANK)
 
 
 @app.post("/subscribe")
 def subscribe(email: str = Form(...), password: str = Form(...),
               days: int = Form(...), experience: str = Form(...),
-              include_run: bool = Form(False), plan: str = Form("monthly")):
+              include_run: bool = Form(False), plan: str = Form("monthly"),
+              equipment: str = Form("full")):
     email = email.lower().strip()
-    if "@" not in email or not _valid_prefs(days, experience, plan):
+    if "@" not in email or not _valid_prefs(days, experience, plan, equipment):
         raise HTTPException(400, "Invalid signup details.")
     if len(password) < 8:
         raise HTTPException(400, "Password must be at least 8 characters.")
 
     conn = db.connect()
-    db.upsert_subscriber(conn, email, days, experience, include_run, plan)
+    if db.get_by_email(conn, email):
+        # Signing up over an existing account would reset its password with
+        # nothing but the email address. Make them sign in instead.
+        return RedirectResponse("/login?exists=1", status_code=303)
+    db.upsert_subscriber(conn, email, days, experience, include_run, plan,
+                         equipment)
     db.set_password(conn, email, password)
     return _finish_signup(conn, email)
 
@@ -162,15 +177,17 @@ def _google_redirect(state: dict) -> RedirectResponse:
 @app.post("/subscribe/google")
 def subscribe_google(days: int = Form(...), experience: str = Form(...),
                      include_run: bool = Form(False),
-                     plan: str = Form("monthly")):
+                     plan: str = Form("monthly"),
+                     equipment: str = Form("full")):
     """Step 3 'Continue with Google': carry the journey through OAuth state."""
     if not GOOGLE_ENABLED:
         raise HTTPException(404, "Google sign-in is not configured.")
-    if not _valid_prefs(days, experience, plan):
+    if not _valid_prefs(days, experience, plan, equipment):
         raise HTTPException(400, "Invalid signup details.")
     return _google_redirect({"signup": True, "days": days,
                              "experience": experience,
-                             "run": bool(include_run), "plan": plan})
+                             "run": bool(include_run), "plan": plan,
+                             "equipment": equipment})
 
 
 @app.get("/login/google")
@@ -205,8 +222,11 @@ def google_callback(code: str = "", state: str = "", error: str = ""):
 
     conn = db.connect()
     if st.get("signup"):
+        # Google has proved they own this address, so updating an existing
+        # row here is safe (unlike the email+password path).
         db.upsert_subscriber(conn, email, st["days"], st["experience"],
-                             st["run"], st["plan"])
+                             st["run"], st["plan"],
+                             st.get("equipment", "full"))
         return _finish_signup(conn, email)
     # plain login
     if not db.get_by_email(conn, email):
@@ -262,9 +282,10 @@ def _email_for_customer(customer_id: str | None) -> str | None:
 
 
 @app.get("/login", response_class=HTMLResponse)
-def login_page(request: Request, error: int = 0):
+def login_page(request: Request, error: int = 0, exists: int = 0):
     return templates.TemplateResponse(request, "login.html", {
-        "error": bool(error), "google_enabled": GOOGLE_ENABLED})
+        "error": bool(error), "exists": bool(exists),
+        "google_enabled": GOOGLE_ENABLED})
 
 
 @app.post("/login")
@@ -283,6 +304,15 @@ def logout():
     return resp
 
 
+def _account_context(sub, **extra) -> dict:
+    return {"sub": sub, "levels": engine.LEVELS,
+            "day_options": sorted(engine.SPLITS), "dev_mode": DEV_MODE,
+            "active": "settings", "equipment_options": engine.EQUIPMENT,
+            "equipment_names": engine.EQUIPMENT_NAMES,
+            "equipment": db.sub_equipment(sub),
+            "has_api_key": db.has_api_key(sub), **extra}
+
+
 @app.get("/account", response_class=HTMLResponse)
 def account(request: Request, saved: int = 0):
     email = _session_email(request)
@@ -292,25 +322,41 @@ def account(request: Request, saved: int = 0):
     sub = db.get_by_email(conn, email)
     if not sub:
         return RedirectResponse("/login", status_code=303)
-    return templates.TemplateResponse(request, "account.html", {
-        "sub": sub, "saved": bool(saved), "levels": engine.LEVELS,
-        "day_options": sorted(engine.SPLITS), "dev_mode": DEV_MODE,
-        "active": "settings",
-    })
+    return templates.TemplateResponse(request, "account.html",
+                                      _account_context(sub, saved=bool(saved)))
 
 
 @app.post("/account")
 def account_update(request: Request, days: int = Form(...),
                    experience: str = Form(...),
-                   include_run: bool = Form(False)):
+                   include_run: bool = Form(False),
+                   equipment: str = Form("full")):
     email = _session_email(request)
     if not email:
         return RedirectResponse("/login", status_code=303)
-    if days not in engine.SPLITS or experience not in engine.LEVELS:
+    if (days not in engine.SPLITS or experience not in engine.LEVELS
+            or equipment not in engine.EQUIPMENT_RANK):
         raise HTTPException(400, "Invalid preferences.")
     conn = db.connect()
-    db.update_prefs(conn, email, days, experience, include_run)
+    db.update_prefs(conn, email, days, experience, include_run, equipment)
     return RedirectResponse("/account?saved=1", status_code=303)
+
+
+@app.post("/account/api-key", response_class=HTMLResponse)
+def account_api_key(request: Request):
+    """Issue (or replace) the API key. Only the hash is stored, so this is the
+    one and only time the key itself is shown."""
+    email = _session_email(request)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+    conn = db.connect()
+    sub = db.get_by_email(conn, email)
+    if not sub:
+        return RedirectResponse("/login", status_code=303)
+    key = db.issue_api_key(conn, email)
+    return templates.TemplateResponse(
+        request, "account.html",
+        _account_context(db.get_by_email(conn, email), new_api_key=key))
 
 
 @app.get("/billing")
@@ -332,9 +378,7 @@ def billing(request: Request):
     return RedirectResponse(session.url, status_code=303)
 
 
-@app.get("/manage")
-def manage(token: str):
-    """Signed link from the weekly email -> Stripe billing portal."""
+def _manage_sub(token: str):
     email = db.verify_token(token, max_age=MANAGE_LINK_MAX_AGE)
     if not email:
         raise HTTPException(403, "Invalid or expired link.")
@@ -342,13 +386,35 @@ def manage(token: str):
     sub = db.get_by_email(conn, email)
     if not sub:
         raise HTTPException(404, "No subscription found.")
+    return conn, email, sub
+
+
+@app.get("/manage")
+def manage(token: str):
+    """Signed link from the weekly email -> Stripe billing portal."""
+    conn, email, sub = _manage_sub(token)
     if DEV_MODE or not sub["stripe_customer_id"]:
-        db.set_status(conn, email, "cancelled")
-        return HTMLResponse("<p>Subscription cancelled (dev mode). "
-                            "You won't receive further emails.</p>")
+        # Confirm on a POST: mail clients and link scanners follow GETs, and
+        # a prefetch must never cancel someone's subscription.
+        return HTMLResponse(
+            '<p>Stop your Sunday emails for '
+            f'{html_escape(email)}?</p>'
+            '<form method="post" action="/manage/cancel">'
+            f'<input type="hidden" name="token" value="{html_escape(token)}">'
+            '<button type="submit">Yes, cancel my subscription</button>'
+            '</form><p><a href="/">No, keep them coming</a></p>')
     session = stripe.billing_portal.Session.create(
         customer=sub["stripe_customer_id"], return_url=APP_BASE_URL)
     return RedirectResponse(session.url, status_code=303)
+
+
+@app.post("/manage/cancel")
+def manage_cancel(token: str = Form(...)):
+    conn, email, sub = _manage_sub(token)
+    if not (DEV_MODE or not sub["stripe_customer_id"]):
+        raise HTTPException(400, "Cancel from the billing portal instead.")
+    db.set_status(conn, email, "cancelled")
+    return HTMLResponse("<p>Cancelled — you won't receive further emails.</p>")
 
 
 def _current_sub(request: Request):
@@ -358,12 +424,24 @@ def _current_sub(request: Request):
     return db.get_by_email(db.connect(), email)
 
 
-def _this_week_plan(sub) -> tuple[int, dict]:
-    import datetime
-    week = datetime.date.today().isocalendar()[1]
-    return week, engine.generate_plan(week, sub["days_per_week"],
-                                      sub["experience"],
-                                      bool(sub["include_run"]))
+def _plan_for(sub, week: int) -> dict:
+    return engine.generate_plan(week, sub["days_per_week"], sub["experience"],
+                                bool(sub["include_run"]), db.sub_equipment(sub))
+
+
+def _last_label(log: dict) -> str:
+    """'60kg × 8', '60kg', or '12 reps' — whatever was actually recorded."""
+    weight, reps = log.get("weight_kg"), log.get("reps")
+    if weight is not None:
+        kg = f"{weight:g}kg"
+        return f"{kg} × {reps}" if reps is not None else kg
+    return f"{reps} reps" if reps is not None else ""
+
+
+def _this_week_plan(sub) -> tuple[int, str, dict]:
+    """(ISO week, storage key, plan) for the week the subscriber is in now."""
+    year, week = datetime.date.today().isocalendar()[:2]
+    return week, db.week_key(year, week), _plan_for(sub, week)
 
 
 @app.get("/exercises", response_class=HTMLResponse)
@@ -372,12 +450,15 @@ def exercise_library(request: Request):
     sub = _current_sub(request)
     if not sub:
         return RedirectResponse("/login", status_code=303)
-    week, plan = _this_week_plan(sub)
+    week, _key, plan = _this_week_plan(sub)
     return templates.TemplateResponse(request, "exercises.html", {
         "exercises": engine.flat_library(), "parts": engine.PART_NAMES,
         "part_order": engine.PART_ORDER, "levels": engine.LEVELS,
         "member": True, "sub": sub, "default_level": sub["experience"],
         "week": week, "active": "exercises",
+        "equipment_options": engine.EQUIPMENT,
+        "equipment_names": engine.EQUIPMENT_NAMES,
+        "default_equipment": db.sub_equipment(sub),
         "this_week": {ex["slug"] for day in plan["days"]
                       for ex in day["exercises"]},
     })
@@ -388,15 +469,54 @@ def my_exercises():
     return RedirectResponse("/exercises", status_code=303)
 
 
-@app.get("/account/plan", response_class=HTMLResponse)
-def my_plan(request: Request):
-    """This week's plan, in the browser."""
+def _opt_number(raw: str, cast, label: str):
+    """Form number fields arrive as strings, and empty means 'not recorded'."""
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    try:
+        return cast(raw)
+    except ValueError:
+        raise HTTPException(400, f"{label} must be a number.")
+
+
+@app.post("/account/plan/log")
+def log_exercise(request: Request, week: str = Form(...), day: int = Form(...),
+                 slug: str = Form(...), done: bool = Form(False),
+                 weight_kg: str = Form(""), reps: str = Form("")):
+    """No-JavaScript fallback for the plan page's tick boxes.
+
+    Each exercise is a real form posting here; the page's JS intercepts the
+    submit and calls the JSON API instead. Same validation either way — this
+    goes through _apply_completion too.
+    """
     sub = _current_sub(request)
     if not sub:
         return RedirectResponse("/login", status_code=303)
-    week, plan = _this_week_plan(sub)
+    _apply_completion(db.connect(), sub, week, day, slug, done,
+                      _opt_number(weight_kg, float, "Weight"),
+                      _opt_number(reps, int, "Reps"))
+    return RedirectResponse(f"/account/plan?saved={urllib.parse.quote(slug)}"
+                            f"#day{day}", status_code=303)
+
+
+@app.get("/account/plan", response_class=HTMLResponse)
+def my_plan(request: Request, saved: str = ""):
+    """This week's plan, in the browser — and where exercises get ticked off."""
+    sub = _current_sub(request)
+    if not sub:
+        return RedirectResponse("/login", status_code=303)
+    week, key, plan = _this_week_plan(sub)
+    conn = db.connect()
+    last = {slug: _last_label(log)
+            for slug, log in db.last_logged(conn, sub["id"],
+                                            before_week=key).items()}
     return templates.TemplateResponse(request, "plan.html", {
-        "sub": sub, "plan": plan, "week": week, "active": "plan"})
+        "sub": sub, "plan": plan, "week": week, "week_key": key,
+        "active": "plan", "saved": saved,
+        "logged": db.completions_for_week(conn, sub["id"], key),
+        "last": {k: v for k, v in last.items() if v},
+    })
 
 
 @app.get("/exercise/{slug}", response_class=HTMLResponse)
@@ -404,15 +524,143 @@ def exercise_page(request: Request, slug: str):
     if slug not in engine.all_slugs():
         raise HTTPException(404, "Unknown exercise.")
     meta = EXDB.get(slug, {})
-    name = meta.get("name") or slug.replace("-", " ").capitalize()
+    name = meta.get("name") or engine.SLUG_NAMES.get(slug) or slug.replace("-", " ").capitalize()
     yt = ("https://www.youtube.com/results?search_query="
           + urllib.parse.quote_plus(f"{name} form how to"))
+    # Swaps are filtered to the signed-in member's kit; visitors see them all.
+    sub = _current_sub(request)
+    equipment = db.sub_equipment(sub) if sub else "full"
     return templates.TemplateResponse(request, "exercise.html", {
         "name": name,
         "instructions": meta.get("instructions", []),
         "images": meta.get("images", []),
         "youtube_url": yt,
+        "alternatives": engine.alternatives_for(slug, equipment, limit=4),
+        "equipment": engine.SLUG_EQUIPMENT.get(slug, "full"),
+        "equipment_names": engine.EQUIPMENT_NAMES,
     })
+
+
+# --- JSON API ---------------------------------------------------------------
+# These endpoints back the tick boxes on the plan page *and* anything else you
+# point at them later (a phone app, a script, a Shortcut). Two ways in:
+#
+#   Authorization: Bearer ss_...   an API key from /account
+#   the ss_session cookie          the plan page's own fetch() calls
+#
+# Keeping the browser on the same endpoints means the API can't quietly rot —
+# if ticking a box works, the API works. The session cookie is samesite=lax
+# and these take a JSON body, so a cross-site form can't drive them.
+
+class CompletionIn(BaseModel):
+    slug: str
+    day: int                                # 1-based day within the week
+    week: str | None = None                 # '2026-W30'; defaults to now
+    weight_kg: float | None = None
+    reps: int | None = None
+    done: bool = True                       # false deletes the entry
+
+
+def _api_sub(request: Request):
+    auth = request.headers.get("authorization", "")
+    conn = db.connect()
+    if auth.lower().startswith("bearer "):
+        return conn, db.get_by_api_key(conn, auth[7:].strip())
+    email = _session_email(request)
+    return conn, (db.get_by_email(conn, email) if email else None)
+
+
+def _require_sub(request: Request):
+    conn, sub = _api_sub(request)
+    if not sub:
+        raise HTTPException(401, "Sign in, or send a valid API key.")
+    return conn, sub
+
+
+def _week_from_key(key: str) -> tuple[int, int]:
+    try:
+        year, week = key.split("-W")
+        return int(year), int(week)
+    except (ValueError, AttributeError):
+        raise HTTPException(400, "week must look like '2026-W30'.")
+
+
+@app.get("/api/v1/me")
+def api_me(request: Request):
+    _conn, sub = _require_sub(request)
+    return {"email": sub["email"], "status": sub["status"],
+            "days_per_week": sub["days_per_week"],
+            "experience": sub["experience"],
+            "equipment": db.sub_equipment(sub),
+            "include_run": bool(sub["include_run"])}
+
+
+@app.get("/api/v1/plan")
+def api_plan(request: Request, week: str | None = None):
+    """This week's plan (or ?week=2026-W30) with what's already been done."""
+    conn, sub = _require_sub(request)
+    if week:
+        year, iso_week = _week_from_key(week)
+    else:
+        year, iso_week = datetime.date.today().isocalendar()[:2]
+    key = db.week_key(year, iso_week)
+    plan = _plan_for(sub, iso_week)
+    logged = db.completions_for_week(conn, sub["id"], key)
+    for i, day in enumerate(plan["days"], start=1):
+        day["day"] = i
+        for ex in day["exercises"]:
+            log = logged.get(f"{i}|{ex['slug']}")
+            ex["done"] = bool(log)
+            ex["weight_kg"] = log["weight_kg"] if log else None
+            ex["reps"] = log["reps"] if log else None
+    plan["week_key"] = key
+    return plan
+
+
+def _apply_completion(conn, sub, week: str | None, day: int, slug: str,
+                      done: bool, weight_kg: float | None,
+                      reps: int | None) -> str:
+    """Validate one tick against that week's plan, then write or delete it.
+
+    Shared by the JSON API and the plain-form fallback so both paths behave
+    identically. Returns the week key that was written.
+    """
+    if week:
+        year, iso_week = _week_from_key(week)
+    else:
+        year, iso_week = datetime.date.today().isocalendar()[:2]
+    key = db.week_key(year, iso_week)
+
+    # Only accept slots that exist in that week's plan, so the table can't
+    # fill up with exercises the subscriber was never given.
+    days = _plan_for(sub, iso_week)["days"]
+    if not 1 <= day <= len(days):
+        raise HTTPException(400, f"That week has days 1-{len(days)}.")
+    if slug not in {ex["slug"] for ex in days[day - 1]["exercises"]}:
+        raise HTTPException(400, "That exercise isn't in that day's plan.")
+
+    if done:
+        db.set_completion(conn, sub["id"], key, day, slug, weight_kg, reps)
+    else:
+        db.clear_completion(conn, sub["id"], key, day, slug)
+    return key
+
+
+@app.post("/api/v1/completions")
+def api_set_completion(request: Request, body: CompletionIn):
+    conn, sub = _require_sub(request)
+    key = _apply_completion(conn, sub, body.week, body.day, body.slug,
+                            body.done, body.weight_kg, body.reps)
+    return {"ok": True, "week": key, "day": body.day, "slug": body.slug,
+            "done": body.done, "weight_kg": body.weight_kg, "reps": body.reps}
+
+
+@app.get("/api/v1/completions")
+def api_completions(request: Request, limit: int = 200):
+    """Raw history, newest first — for progress charts and exports."""
+    conn, sub = _require_sub(request)
+    return {"completions": db.recent_completions(
+        conn, sub["id"], max(1, min(limit, 1000)))}
 
 
 @app.get("/terms", response_class=HTMLResponse)

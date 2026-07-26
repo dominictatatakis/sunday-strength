@@ -13,6 +13,7 @@
   </nav>
   <div class="panel">
     <h2>{{ name }}</h2>
+    <p class="mini">Needs: {{ equipment_names[equipment] | lower }}</p>
     {% if images %}
     <div class="imgs">
       {% for img in images %}<img src="/static/exercises/{{ img }}" alt="{{ name }} demonstration">{% endfor %}
@@ -27,6 +28,18 @@
     <p style="margin-top:1.25rem;"><a class="btn secondary" href="{{ youtube_url }}"
       target="_blank" rel="noopener">▶ Watch demo videos on YouTube</a></p>
   </div>
+
+  {% if alternatives %}
+  <div class="panel" style="margin-top:1rem;">
+    <h2 style="font-size:1rem;">Machine taken? Try these instead</h2>
+    <p class="mini">Same job, different kit — swap one in and carry on.</p>
+    <ul class="swaps">
+      {% for a in alternatives %}
+      <li><a href="/exercise/{{ a.slug }}">{{ a.name }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
 </div>
 </body>
 </html>

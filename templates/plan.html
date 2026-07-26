@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>This week — Sunday Strength</title>
 <link rel="stylesheet" href="/static/style.css">
+<script>document.documentElement.className += " js";</script>
 </head>
 <body>
 <div class="wrap">
@@ -12,17 +13,49 @@
   <h1 style="font-size:2rem;">Your week — week {{ week }}</h1>
   <p class="lede" style="margin-bottom:1.75rem;">
     {{ plan.days | length }} gym day{{ 's' if plan.days | length != 1 }}{% if plan.run %} + 1 run{% endif %}
-    · {{ sub.experience }} · tap any exercise for a demo.</p>
+    · {{ sub.experience }} · built for {{ plan.equipment if plan.equipment != 'full' else 'a full gym' }}
+    · tap any exercise for a demo.
+    <span id="savestate" class="savestate"></span></p>
 
   <div class="days">
     {% for day in plan.days %}
-    <div class="day">
-      <h3>{{ day.title }}</h3>
+    {% set daynum = loop.index %}
+    <div class="day" id="day{{ daynum }}" data-day="{{ daynum }}">
+      <h3>{{ day.title }} <span class="progress"
+        data-total="{{ day.exercises | length }}"></span></h3>
       {% for ex in day.exercises %}
-      <div class="ex-row">
-        <a href="/exercise/{{ ex.slug }}">{{ ex.name }}</a>
-        <span class="sets">{{ ex.sets }}</span>
-      </div>
+      {% set log = logged.get(daynum ~ '|' ~ ex.slug) %}
+      {% set prev = last.get(ex.slug) %}
+      {# A real form, so this page works with JavaScript switched off. The
+         script at the bottom intercepts the submit and posts to the API
+         instead; both routes end up in _apply_completion. #}
+      <form class="ex-log" method="post" action="/account/plan/log">
+        <input type="hidden" name="week" value="{{ week_key }}">
+        <input type="hidden" name="day" value="{{ daynum }}">
+        <input type="hidden" name="slug" value="{{ ex.slug }}">
+        <div class="ex-row done-row">
+          <label class="tick">
+            <input type="checkbox" name="done" value="true" {{ 'checked' if log }}>
+            <a href="/exercise/{{ ex.slug }}">{{ ex.name }}</a>
+          </label>
+          <span class="sets">{{ ex.sets }}</span>
+        </div>
+        <div class="log">
+          <input type="number" name="weight_kg" step="0.5" min="0" placeholder="kg"
+                 value="{{ log.weight_kg if log and log.weight_kg is not none }}"
+                 aria-label="Weight in kg for {{ ex.name }}">
+          <input type="number" name="reps" step="1" min="0" placeholder="reps"
+                 value="{{ log.reps if log and log.reps is not none }}"
+                 aria-label="Reps for {{ ex.name }}">
+          <button type="submit" class="savebtn">Save</button>
+          {% if prev %}<span class="last">last: {{ prev }}</span>{% endif %}
+          {% if saved == ex.slug %}<span class="savedtag">saved</span>{% endif %}
+        </div>
+      </form>
+      {% if ex.alts %}
+      <p class="swap">Taken? {% for a in ex.alts %}<a
+        href="/exercise/{{ a.slug }}">{{ a.name }}</a>{{ " or " if not loop.last }}{% endfor %}</p>
+      {% endif %}
       {% endfor %}
     </div>
     {% endfor %}
@@ -42,9 +75,78 @@
   </div>
 
   <footer>
+    <p>Tick exercises off as you go — weight and reps are optional, but logging
+    them is what turns on the "last: 60kg × 8" hints next week. Saved to your
+    account, and readable from your own apps via the
+    <a href="/account">API key</a> on your settings page.</p>
     <p>This is the same plan as your Sunday email — it updates automatically
     each week and whenever you change your <a href="/account">settings</a>.</p>
   </footer>
 </div>
+
+<script>
+// Progressive enhancement: without this, every exercise is a plain form that
+// posts to /account/plan/log and reloads. With it, the same fields go to the
+// JSON API in the background and the Save buttons are hidden (see .js .savebtn).
+(function () {
+  const status = document.getElementById("savestate");
+
+  function flash(text, bad) {
+    status.textContent = text;
+    status.className = "savestate" + (bad ? " bad" : " ok");
+    if (!bad) setTimeout(() => { status.textContent = ""; }, 1500);
+  }
+
+  function num(form, name) {
+    const v = form.elements[name].value.trim();
+    return v === "" ? null : Number(v);
+  }
+
+  function save(form) {
+    return fetch("/api/v1/completions", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      credentials: "same-origin",
+      body: JSON.stringify({
+        week: form.elements.week.value,
+        day: Number(form.elements.day.value),
+        slug: form.elements.slug.value,
+        done: form.elements.done.checked,
+        weight_kg: num(form, "weight_kg"),
+        reps: num(form, "reps"),
+      }),
+    }).then(r => {
+      if (!r.ok) throw new Error(r.status);
+      flash("Saved");
+      progress();
+    }).catch(() => flash("Not saved — check your connection", true));
+  }
+
+  function progress() {
+    document.querySelectorAll(".day").forEach(d => {
+      const boxes = d.querySelectorAll('input[type=checkbox]');
+      const done = d.querySelectorAll('input[type=checkbox]:checked').length;
+      const el = d.querySelector(".progress");
+      el.textContent = done ? done + " of " + boxes.length + " done" : "";
+      el.classList.toggle("all", done === boxes.length && boxes.length > 0);
+    });
+  }
+
+  document.querySelectorAll("form.ex-log").forEach(form => {
+    form.addEventListener("submit", e => { e.preventDefault(); save(form); });
+    form.elements.done.addEventListener("change", () => save(form));
+    // Typing a weight or a rep count means you did it — tick it for them.
+    ["weight_kg", "reps"].forEach(name =>
+      form.elements[name].addEventListener("change", () => {
+        if (form.elements[name].value.trim() !== "") {
+          form.elements.done.checked = true;
+        }
+        save(form);
+      }));
+  });
+
+  progress();
+})();
+</script>
 </body>
 </html>
