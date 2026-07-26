@@ -105,6 +105,7 @@ html.js .day .savebtn { display: none; }
 .savestate { font-size: .78rem; margin-left: .5rem; }
 .savestate.ok { color: #1a7f37; }
 .savestate.bad { color: #b91c1c; }
+.savestate.warn { color: #b45309; }
 
 /* API key panel */
 pre.apikey { background: var(--panel); border: 1px solid var(--line);

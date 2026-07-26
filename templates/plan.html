@@ -90,11 +90,15 @@
 // JSON API in the background and the Save buttons are hidden (see .js .savebtn).
 (function () {
   const status = document.getElementById("savestate");
+  // The free Render instance sleeps after 15 min idle. A tick on a page that
+  // has been sitting open hits Render's wake-up page rather than the app, so
+  // retry through it instead of crying wolf. ~30s of patience total.
+  const RETRY_DELAYS = [1000, 3000, 6000, 10000];
 
-  function flash(text, bad) {
+  function flash(text, kind) {
     status.textContent = text;
-    status.className = "savestate" + (bad ? " bad" : " ok");
-    if (!bad) setTimeout(() => { status.textContent = ""; }, 1500);
+    status.className = "savestate" + (kind ? " " + kind : "");
+    if (kind === "ok") setTimeout(() => { status.textContent = ""; }, 1500);
   }
 
   function num(form, name) {
@@ -102,24 +106,61 @@
     return v === "" ? null : Number(v);
   }
 
-  function save(form) {
-    return fetch("/api/v1/completions", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      credentials: "same-origin",
-      body: JSON.stringify({
-        week: form.elements.week.value,
-        day: Number(form.elements.day.value),
-        slug: form.elements.slug.value,
-        done: form.elements.done.checked,
-        weight_kg: num(form, "weight_kg"),
-        reps: num(form, "reps"),
-      }),
-    }).then(r => {
-      if (!r.ok) throw new Error(r.status);
-      flash("Saved");
-      progress();
-    }).catch(() => flash("Not saved — check your connection", true));
+  function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function send(form) {
+    const body = JSON.stringify({
+      week: form.elements.week.value,
+      day: Number(form.elements.day.value),
+      slug: form.elements.slug.value,
+      done: form.elements.done.checked,
+      weight_kg: num(form, "weight_kg"),
+      reps: num(form, "reps"),
+    });
+    let last = 0;
+    for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
+      if (attempt) {
+        flash("Server waking up, retrying…", "warn");
+        await wait(RETRY_DELAYS[attempt - 1]);
+      }
+      let resp;
+      try {
+        resp = await fetch("/api/v1/completions", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          credentials: "same-origin",
+          body: body,
+        });
+      } catch (e) {
+        last = 0;                       // offline or DNS — worth another go
+        continue;
+      }
+      if (resp.ok) return true;
+      last = resp.status;
+      if (resp.status === 401) {
+        flash("Signed out — reload the page and sign in", "bad");
+        return false;
+      }
+      if (resp.status < 500) {          // 400 etc: retrying won't help
+        flash("Not saved (" + resp.status + ")", "bad");
+        return false;
+      }
+    }
+    flash(last ? "Not saved (" + last + ") — try again"
+               : "Not saved — you appear to be offline", "bad");
+    return false;
+  }
+
+  async function save(form) {
+    const box = form.elements.done;
+    const wanted = box.checked;
+    flash("Saving…", "");
+    if (await send(form)) {
+      flash("Saved", "ok");
+    } else {
+      box.checked = !wanted;    // never leave the tick claiming it saved
+    }
+    progress();
   }
 
   function progress() {
