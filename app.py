@@ -430,12 +430,18 @@ def _plan_for(sub, week: int) -> dict:
 
 
 def _last_label(log: dict) -> str:
-    """'60kg × 8', '60kg', or '12 reps' — whatever was actually recorded."""
-    weight, reps = log.get("weight_kg"), log.get("reps")
-    if weight is not None:
-        kg = f"{weight:g}kg"
-        return f"{kg} × {reps}" if reps is not None else kg
-    return f"{reps} reps" if reps is not None else ""
+    """'3 × 8 @ 60kg' — reading as sets × reps at load, dropping what's missing.
+
+    Rows logged before the sets column existed have sets NULL and still read
+    correctly as '8 @ 60kg'.
+    """
+    sets, reps, weight = log.get("sets"), log.get("reps"), log.get("weight_kg")
+    volume = f"{sets} × {reps}" if sets and reps else (
+        f"{sets} sets" if sets else (f"{reps} reps" if reps else ""))
+    if weight is None:
+        return volume
+    kg = f"{weight:g}kg"
+    return f"{volume} @ {kg}" if volume else kg
 
 
 def _this_week_plan(sub) -> tuple[int, str, dict]:
@@ -483,7 +489,8 @@ def _opt_number(raw: str, cast, label: str):
 @app.post("/account/plan/log")
 def log_exercise(request: Request, week: str = Form(...), day: int = Form(...),
                  slug: str = Form(...), done: bool = Form(False),
-                 weight_kg: str = Form(""), reps: str = Form("")):
+                 weight_kg: str = Form(""), reps: str = Form(""),
+                 sets: str = Form("")):
     """No-JavaScript fallback for the plan page's tick boxes.
 
     Each exercise is a real form posting here; the page's JS intercepts the
@@ -495,7 +502,8 @@ def log_exercise(request: Request, week: str = Form(...), day: int = Form(...),
         return RedirectResponse("/login", status_code=303)
     _apply_completion(db.connect(), sub, week, day, slug, done,
                       _opt_number(weight_kg, float, "Weight"),
-                      _opt_number(reps, int, "Reps"))
+                      _opt_number(reps, int, "Reps"),
+                      _opt_number(sets, int, "Sets"))
     return RedirectResponse(f"/account/plan?saved={urllib.parse.quote(slug)}"
                             f"#day{day}", status_code=303)
 
@@ -507,6 +515,11 @@ def my_plan(request: Request, saved: str = ""):
     if not sub:
         return RedirectResponse("/login", status_code=303)
     week, key, plan = _this_week_plan(sub)
+    # The sets box starts on what the plan asked for ('3 x 10-12' -> 3), so it
+    # only needs touching on the days you deviate.
+    for day in plan["days"]:
+        for ex in day["exercises"]:
+            ex["sets_n"] = engine.prescribed_sets(ex["sets"])
     conn = db.connect()
     last = {slug: _last_label(log)
             for slug, log in db.last_logged(conn, sub["id"],
@@ -556,8 +569,9 @@ class CompletionIn(BaseModel):
     slug: str
     day: int                                # 1-based day within the week
     week: str | None = None                 # '2026-W30'; defaults to now
-    weight_kg: float | None = None
-    reps: int | None = None
+    sets: int | None = None                 # sets done
+    reps: int | None = None                 # per set, not the total
+    weight_kg: float | None = None          # per dumbbell, not the pair
     done: bool = True                       # false deletes the entry
 
 
@@ -611,6 +625,8 @@ def api_plan(request: Request, week: str | None = None):
         for ex in day["exercises"]:
             log = logged.get(f"{i}|{ex['slug']}")
             ex["done"] = bool(log)
+            # .get: rows written before the sets column existed lack the key.
+            ex["sets_done"] = log.get("sets") if log else None
             ex["weight_kg"] = log["weight_kg"] if log else None
             ex["reps"] = log["reps"] if log else None
     plan["week_key"] = key
@@ -619,7 +635,7 @@ def api_plan(request: Request, week: str | None = None):
 
 def _apply_completion(conn, sub, week: str | None, day: int, slug: str,
                       done: bool, weight_kg: float | None,
-                      reps: int | None) -> str:
+                      reps: int | None, sets: int | None = None) -> str:
     """Validate one tick against that week's plan, then write or delete it.
 
     Shared by the JSON API and the plain-form fallback so both paths behave
@@ -640,7 +656,8 @@ def _apply_completion(conn, sub, week: str | None, day: int, slug: str,
         raise HTTPException(400, "That exercise isn't in that day's plan.")
 
     if done:
-        db.set_completion(conn, sub["id"], key, day, slug, weight_kg, reps)
+        db.set_completion(conn, sub["id"], key, day, slug, weight_kg, reps,
+                          sets)
     else:
         db.clear_completion(conn, sub["id"], key, day, slug)
     return key
@@ -650,9 +667,10 @@ def _apply_completion(conn, sub, week: str | None, day: int, slug: str,
 def api_set_completion(request: Request, body: CompletionIn):
     conn, sub = _require_sub(request)
     key = _apply_completion(conn, sub, body.week, body.day, body.slug,
-                            body.done, body.weight_kg, body.reps)
+                            body.done, body.weight_kg, body.reps, body.sets)
     return {"ok": True, "week": key, "day": body.day, "slug": body.slug,
-            "done": body.done, "weight_kg": body.weight_kg, "reps": body.reps}
+            "done": body.done, "sets": body.sets, "reps": body.reps,
+            "weight_kg": body.weight_kg}
 
 
 @app.get("/api/v1/completions")

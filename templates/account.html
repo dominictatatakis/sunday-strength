@@ -83,11 +83,12 @@
       <pre class="apikey code">curl -H "Authorization: Bearer YOUR_KEY" \
   {{ request.base_url }}api/v1/plan
 
-# tick an exercise off, with the load you used
+# tick an exercise off, with the load you used: 3 sets of 8 at 60kg.
+# reps are per set, and weight is per dumbbell — not the pair.
 curl -X POST {{ request.base_url }}api/v1/completions \
   -H "Authorization: Bearer YOUR_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"day": 1, "slug": "bench-press", "weight_kg": 60, "reps": 8}'
+  -d '{"day": 1, "slug": "bench-press", "sets": 3, "reps": 8, "weight_kg": 60}'
 
 # everything you've logged, newest first
 curl -H "Authorization: Bearer YOUR_KEY" \

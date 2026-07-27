@@ -154,13 +154,19 @@ that takes ~30s. Fine for a beta; £7/mo removes it later.
 
 ## Workout log + JSON API
 
-Exercises get ticked off on `/account/plan`, with optional weight and reps.
-Logging those turns on a "last: 60kg × 8" hint under the same exercise next
-time it comes round.
+Exercises get ticked off on `/account/plan`, with optional sets, reps and
+weight. Logging those turns on a "last: 3 × 8 @ 60kg" hint under the same
+exercise next time it comes round.
+
+The three boxes read as one sentence — `[3] sets × [8] reps @ [60] kg` —
+because the units are the whole answer to "is that per set or the total?".
+**Reps are per set, and weight is per dumbbell, not the pair.** The sets box
+is prefilled from the prescription (`3 x 10-12` → 3) so it only needs touching
+on the days you deviate; the other two start empty.
 
 The plan is reproducible from `(week, prefs)`, so a `completions` row only
-names the slot it fills: `(subscriber_id, week, day, slug, weight_kg, reps)`,
-unique per slot. Week keys are the same `2026-W30` format as `sends`, and
+names the slot it fills: `(subscriber_id, week, day, slug, sets, reps,
+weight_kg)`, unique per slot. Week keys are the same `2026-W30` format as `sends`, and
 because they're zero-padded a string compare orders them chronologically —
 that's how `last_logged(before_week=...)` excludes the week in progress.
 
@@ -172,9 +178,10 @@ API works.
 ```
 GET  /api/v1/me                     prefs and status
 GET  /api/v1/plan[?week=2026-W30]   the week's plan, each exercise carrying
-                                    done / weight_kg / reps
+                                    done / sets_done / reps / weight_kg
+                                    (`sets` there is the prescription text)
 POST /api/v1/completions            {"day":1,"slug":"bench-press",
-                                     "weight_kg":60,"reps":8}
+                                     "sets":3,"reps":8,"weight_kg":60}
                                     "done":false deletes the entry
 GET  /api/v1/completions?limit=200  raw history, newest first
 ```

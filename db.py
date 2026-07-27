@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS completions (
     week TEXT NOT NULL,
     day INTEGER NOT NULL,
     slug TEXT NOT NULL,
+    sets INTEGER,
     weight_kg DOUBLE PRECISION,
     reps INTEGER,
     done_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -67,6 +68,7 @@ MIGRATIONS_PG = [
     "ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS equipment TEXT "
     "NOT NULL DEFAULT 'full'",
     "ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS api_key_hash TEXT",
+    "ALTER TABLE completions ADD COLUMN IF NOT EXISTS sets INTEGER",
     # sends.week used to be an INTEGER ISO week number, which collides one year
     # later and silently skips everyone. It now holds '2026-W30'.
     """DO $$ BEGIN
@@ -108,8 +110,10 @@ CREATE TABLE IF NOT EXISTS completions (
     week TEXT NOT NULL,                             -- '2026-W30'
     day INTEGER NOT NULL,                           -- 1-based day in that week
     slug TEXT NOT NULL,
-    weight_kg REAL,                                 -- both optional: a bare
-    reps INTEGER,                                   -- tick is a valid log
+    sets INTEGER,                                   -- all three optional: a
+    weight_kg REAL,                                 -- bare tick is a valid
+    reps INTEGER,                                   -- log. reps are per set,
+                                                    -- weight is per dumbbell
     done_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
     UNIQUE (subscriber_id, week, day, slug)
 );
@@ -121,6 +125,7 @@ MIGRATIONS_SQLITE = [
     "ALTER TABLE subscribers ADD COLUMN password_hash TEXT",
     "ALTER TABLE subscribers ADD COLUMN equipment TEXT NOT NULL DEFAULT 'full'",
     "ALTER TABLE subscribers ADD COLUMN api_key_hash TEXT",
+    "ALTER TABLE completions ADD COLUMN sets INTEGER",
 ]
 
 
@@ -322,16 +327,19 @@ def unrecord_send(conn, subscriber_id: int, week: str) -> None:
 
 def set_completion(conn, subscriber_id: int, week: str, day: int, slug: str,
                    weight_kg: float | None = None,
-                   reps: int | None = None) -> None:
+                   reps: int | None = None,
+                   sets: int | None = None) -> None:
     """Mark one exercise done, with optional load. Re-ticking updates it."""
     conn.execute(
-        """INSERT INTO completions (subscriber_id, week, day, slug, weight_kg, reps)
-           VALUES (?, ?, ?, ?, ?, ?)
+        """INSERT INTO completions
+             (subscriber_id, week, day, slug, sets, weight_kg, reps)
+           VALUES (?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(subscriber_id, week, day, slug) DO UPDATE SET
+             sets = excluded.sets,
              weight_kg = excluded.weight_kg,
              reps = excluded.reps,
              done_at = CURRENT_TIMESTAMP""",
-        (subscriber_id, week, day, slug, weight_kg, reps))
+        (subscriber_id, week, day, slug, sets, weight_kg, reps))
     conn.commit()
 
 
@@ -358,14 +366,15 @@ def recent_completions(conn, subscriber_id: int, limit: int = 200) -> list:
 
 
 def last_logged(conn, subscriber_id: int, before_week: str | None = None) -> dict:
-    """Most recent weight/reps per exercise — the 'last time: 60kg x 8' hint.
+    """Most recent load per exercise — the 'last: 3 × 8 @ 60kg' hint.
 
     Week keys are zero-padded ('2026-W07'), so a string compare orders them
     chronologically and `before_week` cleanly excludes the week in progress.
     """
     rows = conn.execute(
-        "SELECT slug, weight_kg, reps, week FROM completions "
-        "WHERE subscriber_id = ? AND (weight_kg IS NOT NULL OR reps IS NOT NULL) "
+        "SELECT slug, sets, weight_kg, reps, week FROM completions "
+        "WHERE subscriber_id = ? AND (weight_kg IS NOT NULL "
+        "OR reps IS NOT NULL OR sets IS NOT NULL) "
         "ORDER BY id DESC", (subscriber_id,)).fetchall()
     out: dict[str, dict] = {}
     for r in rows:

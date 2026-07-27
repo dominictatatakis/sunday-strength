@@ -83,11 +83,24 @@ body {
 .day .tick input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent, #1a7f37);
                    flex: none; cursor: pointer; }
 .day .tick input:checked + a { color: var(--muted); text-decoration: line-through; }
-.day .log { display: flex; align-items: center; gap: .4rem; margin: 0 0 .4rem 1.55rem; }
-.day .log input { width: 4.4rem; padding: .18rem .4rem; font-size: .8rem;
+/* wrap: three boxes plus their units overflow a narrow phone on one line */
+.day .log { display: flex; align-items: center; flex-wrap: wrap; gap: .3rem;
+            margin: 0 0 .4rem 1.55rem; }
+.day .log input { width: 3.6rem; padding: .18rem .4rem; font-size: .8rem;
                   border-radius: 7px; border: 1px solid var(--line);
                   background: transparent; color: inherit; }
+/* "sets × reps @ kg" — the units are what make the boxes self-explanatory,
+   so they stay put rather than being placeholders that vanish on typing. */
+.day .log .fld { display: inline-flex; align-items: center; gap: .3rem;
+                 margin-right: .15rem; }
+.day .log .unit { font-size: .74rem; color: var(--muted); }
 .day .log .last { font-size: .74rem; color: var(--muted); }
+/* On a phone, give up the indent under the tick before wrapping the row —
+   all three boxes on one line is what keeps "sets × reps @ kg" readable. */
+@media (max-width: 480px) {
+  .day .log { margin-left: .5rem; gap: .25rem; }
+  .day .log input { width: 3.1rem; }
+}
 .day .log .savedtag { font-size: .72rem; font-weight: 700; color: #1a7f37; }
 /* The Save buttons only exist for the no-JavaScript path; when the script
    runs it stamps .js on <html> and saving happens on change instead. */

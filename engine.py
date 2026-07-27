@@ -509,6 +509,16 @@ def available(pool: list[tuple[str, str, str, str]],
     return [e for e in pool if EQUIPMENT_RANK[e[3]] <= rank]
 
 
+def prescribed_sets(sets: str) -> int | None:
+    """The set count out of a '3 x 10-12' prescription, for prefilling the log.
+
+    Returns None rather than guessing if the text isn't in that shape, so a
+    future entry written some other way just leaves the box empty.
+    """
+    head = (sets or "").split("x")[0].strip()
+    return int(head) if head.isdigit() else None
+
+
 def alternatives_for(slug: str, equipment: str = "full",
                      limit: int = 2) -> list[dict]:
     """Swaps for one exercise, filtered to what the subscriber can actually do."""

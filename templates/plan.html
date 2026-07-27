@@ -40,13 +40,25 @@
           </label>
           <span class="sets">{{ ex.sets }}</span>
         </div>
+        {# Reads as the sentence you'd say out loud — "3 sets by 12 reps at
+           18 kilos" — which is what stops reps being read as a weekly total. #}
         <div class="log">
-          <input type="number" name="weight_kg" step="0.5" min="0" placeholder="kg"
-                 value="{{ log.weight_kg if log and log.weight_kg is not none }}"
-                 aria-label="Weight in kg for {{ ex.name }}">
-          <input type="number" name="reps" step="1" min="0" placeholder="reps"
+          {# Each box is wrapped with its own unit so a narrow screen breaks
+             between pairs, never between a number and the word for it. #}
+          <span class="fld"><input type="number" name="sets" step="1" min="0"
+                 value="{{ log.sets if log and log.sets is not none else ex.sets_n if ex.sets_n }}"
+                 aria-label="Sets done for {{ ex.name }}"><span
+                 class="unit">sets ×</span></span>
+          <span class="fld"><input type="number" name="reps" step="1" min="0"
                  value="{{ log.reps if log and log.reps is not none }}"
-                 aria-label="Reps for {{ ex.name }}">
+                 aria-label="Reps per set for {{ ex.name }}"><span
+                 class="unit">reps @</span></span>
+          {# '%g' so a stored 18.0 shows as 18 — the box is too narrow for a
+             trailing zero nobody typed. #}
+          <span class="fld"><input type="number" name="weight_kg" step="0.5" min="0"
+                 value="{{ '%g' % log.weight_kg if log and log.weight_kg is not none }}"
+                 aria-label="Weight in kg per dumbbell for {{ ex.name }}"><span
+                 class="unit">kg</span></span>
           <button type="submit" class="savebtn">Save</button>
           {% if prev %}<span class="last">last: {{ prev }}</span>{% endif %}
           {% if saved == ex.slug %}<span class="savedtag">saved</span>{% endif %}
@@ -71,13 +83,18 @@
     <h2 style="font-size:1rem;">How to run the week</h2>
     <ul style="padding-left:1.2rem;color:var(--muted);font-size:.92rem;">
       {% for note in plan.notes %}<li style="margin-bottom:.25rem;">{{ note }}</li>{% endfor %}
+      <li style="margin-bottom:.25rem;">Log it the way you'd say it:
+        <strong>3 sets × 12 reps @ 18kg</strong>. Reps are per set, not the
+        total — and weight is the number on the kit you picked up, so a pair
+        of 18kg dumbbells is 18, not 36. The sets box starts on what the plan
+        asked for; change it if you did more or fewer.</li>
     </ul>
   </div>
 
   <footer>
-    <p>Tick exercises off as you go — weight and reps are optional, but logging
-    them is what turns on the "last: 60kg × 8" hints next week. Saved to your
-    account, and readable from your own apps via the
+    <p>Tick exercises off as you go — sets, reps and weight are optional, but
+    logging them is what turns on the "last: 3 × 8 @ 60kg" hints next week.
+    Saved to your account, and readable from your own apps via the
     <a href="/account">API key</a> on your settings page.</p>
     <p>This is the same plan as your Sunday email — it updates automatically
     each week and whenever you change your <a href="/account">settings</a>.</p>
@@ -114,8 +131,9 @@
       day: Number(form.elements.day.value),
       slug: form.elements.slug.value,
       done: form.elements.done.checked,
-      weight_kg: num(form, "weight_kg"),
+      sets: num(form, "sets"),
       reps: num(form, "reps"),
+      weight_kg: num(form, "weight_kg"),
     });
     let last = 0;
     for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
@@ -176,8 +194,10 @@
   document.querySelectorAll("form.ex-log").forEach(form => {
     form.addEventListener("submit", e => { e.preventDefault(); save(form); });
     form.elements.done.addEventListener("change", () => save(form));
-    // Typing a weight or a rep count means you did it — tick it for them.
-    ["weight_kg", "reps"].forEach(name =>
+    // Filling any of these in means you did it — tick it for them. `change`
+    // only fires on a real edit, so the prefilled sets box can't tick a row
+    // on its own.
+    ["sets", "weight_kg", "reps"].forEach(name =>
       form.elements[name].addEventListener("change", () => {
         if (form.elements[name].value.trim() !== "") {
           form.elements.done.checked = true;
