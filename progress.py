@@ -278,3 +278,68 @@ def tonnage(completions, latest_week):
     weeks = [{"week": week, "value": totals.get(week, 0.0)}
              for week in week_range(first, latest_week)]
     return {"weeks": weeks, "unit": "kg" if loaded else "reps"}
+
+
+def _slug_names():
+    out = {}
+    for levels in engine.POOLS.values():
+        for pool in levels.values():
+            for name, slug, _sets, _tier in pool:
+                out.setdefault(slug, name)
+    return out
+
+
+def pattern_trends(completions):
+    """Per-pattern detail: every lift as its own series, gaps left visible.
+
+    No smoothing and no interpolation. If rotation skipped a lift for a month,
+    the line should show a month-long gap, because that is what happened.
+    """
+    patterns, names = slug_patterns(), _slug_names()
+    grouped = {}
+    for slug, points in slug_series(completions).items():
+        pattern = patterns.get(slug)
+        if pattern:
+            grouped.setdefault(pattern, []).append(
+                {"slug": slug, "name": names.get(slug, slug), "points": points})
+
+    order = [p for p in engine.PATTERN_NAMES if p in grouped]
+    return [{"pattern": p, "name": engine.PATTERN_NAMES[p],
+             "lifts": sorted(grouped[p], key=lambda l: l["name"])}
+            for p in order]
+
+
+def sparkline(values, width=260, height=48, pad=4):
+    """Polyline geometry for an inline SVG chart.
+
+    Geometry belongs here rather than in Jinja so the template stays markup and
+    the maths stays testable. None values break the line into segments instead
+    of dropping it to the floor.
+    """
+    numbers = [v for v in values if v is not None]
+    if len(numbers) < 2 or len(values) < 2:
+        return {"segments": [], "width": width, "height": height,
+                "lo": None, "hi": None}
+
+    lo, hi = min(numbers), max(numbers)
+    span = (hi - lo) or 1.0
+    step = (width - 2 * pad) / (len(values) - 1)
+    inner = height - 2 * pad
+
+    segments, current = [], []
+    for i, value in enumerate(values):
+        if value is None:
+            if len(current) > 1:
+                segments.append(current)
+            current = []
+            continue
+        x = pad + i * step
+        # A flat series would otherwise pin to the bottom; centre it instead.
+        y = (height / 2 if hi == lo
+             else height - pad - (value - lo) / span * inner)
+        current.append((round(x, 1), round(y, 1)))
+    if len(current) > 1:
+        segments.append(current)
+
+    return {"segments": segments, "width": width, "height": height,
+            "lo": lo, "hi": hi}

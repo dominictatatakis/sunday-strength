@@ -240,5 +240,46 @@ class TestTonnage(unittest.TestCase):
         self.assertEqual(progress.tonnage([], "2026-W30")["weeks"], [])
 
 
+class TestPatternTrends(unittest.TestCase):
+    def test_groups_lifts_under_their_pattern(self):
+        rows = [c("2026-W30", "leg-press", 80, 3),
+                c("2026-W31", "goblet-squat", 30, 10),
+                c("2026-W31", "bench-press", 60, 5)]
+        trends = {t["pattern"]: t for t in progress.pattern_trends(rows)}
+        self.assertEqual({l["slug"] for l in trends["squat"]["lifts"]},
+                         {"leg-press", "goblet-squat"})
+        self.assertEqual(len(trends["h_push"]["lifts"]), 1)
+
+    def test_names_come_from_the_engine(self):
+        rows = [c("2026-W30", "leg-press", 80, 3)]
+        trend = progress.pattern_trends(rows)[0]
+        self.assertEqual(trend["lifts"][0]["name"], "Leg press")
+
+    def test_unlogged_patterns_are_absent(self):
+        rows = [c("2026-W30", "leg-press", 80, 3)]
+        self.assertEqual([t["pattern"] for t in progress.pattern_trends(rows)],
+                         ["squat"])
+
+
+class TestSparkline(unittest.TestCase):
+    def test_flat_series_sits_mid_height(self):
+        chart = progress.sparkline([50.0, 50.0], width=100, height=50)
+        ys = {round(y) for x, y in chart["segments"][0]}
+        self.assertEqual(ys, {25})
+
+    def test_rising_series_goes_up_the_screen(self):
+        chart = progress.sparkline([10.0, 20.0], width=100, height=50)
+        (_, y0), (_, y1) = chart["segments"][0]
+        self.assertLess(y1, y0)   # SVG y grows downward
+
+    def test_none_breaks_the_line_into_segments(self):
+        chart = progress.sparkline([1.0, 2.0, None, 3.0, 4.0])
+        self.assertEqual(len(chart["segments"]), 2)
+
+    def test_too_few_points_draws_nothing(self):
+        self.assertEqual(progress.sparkline([5.0])["segments"], [])
+        self.assertEqual(progress.sparkline([])["segments"], [])
+
+
 if __name__ == "__main__":
     unittest.main()
