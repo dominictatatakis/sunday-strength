@@ -7,6 +7,7 @@ that fails silently.
 """
 
 import datetime
+import engine
 
 # Epley diverges badly on high-rep sets: a 20-rep bodyweight squat would report
 # an absurd 1RM. Above this we decline to estimate rather than guess.
@@ -154,3 +155,51 @@ def strength_index(completions, latest_week):
                 latest[slug] = inside[-1][1]
         out.append((week, sum(latest.values()) / len(latest) if latest else None))
     return out
+
+
+def slug_patterns():
+    """{slug: movement pattern}. Derived from engine.POOLS, never hardcoded."""
+    out = {}
+    for pattern, levels in engine.POOLS.items():
+        for pool in levels.values():
+            for _name, slug, _sets, _tier in pool:
+                out.setdefault(slug, pattern)
+    return out
+
+
+def relative_strength(completions, bodyweight_kg, latest_week):
+    """Load per kg of bodyweight across the four main patterns.
+
+    None when no bodyweight is known. Patterns with nothing logged in the
+    window are named in 'missing' rather than dropped, so a two-lift total
+    never poses as a four-lift one.
+    """
+    if not bodyweight_kg:
+        return None
+
+    patterns = slug_patterns()
+    cutoff = week_to_date(latest_week) - datetime.timedelta(
+        weeks=RELATIVE_WINDOW_WEEKS - 1)
+
+    best = {}
+    for row in completions:
+        slug = row["slug"]
+        pattern = patterns.get(slug)
+        if pattern not in MAIN_PATTERNS or slug in BODYWEIGHT_LOADED:
+            continue
+        if not (cutoff <= week_to_date(row["week"]) <= week_to_date(latest_week)):
+            continue
+        load = e1rm(row.get("weight_kg"), row.get("reps"))
+        if load is None:
+            continue
+        if slug in PER_DUMBBELL:
+            load *= 2
+        if load > best.get(pattern, (0.0, None))[0]:
+            best[pattern] = (load, slug)
+
+    lifts = [{"pattern": p, "slug": best[p][1], "load": best[p][0],
+              "ratio": best[p][0] / bodyweight_kg}
+             for p in MAIN_PATTERNS if p in best]
+    missing = [p for p in MAIN_PATTERNS if p not in best]
+    total = (sum(l["load"] for l in lifts) / bodyweight_kg) if lifts else None
+    return {"total": total, "lifts": lifts, "missing": missing}

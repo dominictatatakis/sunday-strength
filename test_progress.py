@@ -127,5 +127,50 @@ class TestStrengthIndex(unittest.TestCase):
         self.assertEqual(progress.strength_index([], "2026-W31"), [])
 
 
+class TestRelativeStrength(unittest.TestCase):
+    def test_ratio_against_bodyweight(self):
+        rows = [c("2026-W30", "back-squat", 100, 5)]
+        out = progress.relative_strength(rows, 100.0, "2026-W30")
+        squat = [l for l in out["lifts"] if l["pattern"] == "squat"][0]
+        self.assertAlmostEqual(squat["load"], 116.67, places=1)
+        self.assertAlmostEqual(squat["ratio"], 1.167, places=2)
+
+    def test_per_dumbbell_load_is_doubled(self):
+        # 30 kg in each hand is a 60 kg lift when compared to bodyweight.
+        rows = [c("2026-W30", "dumbbell-chest-press", 30, 10)]
+        out = progress.relative_strength(rows, 100.0, "2026-W30")
+        press = [l for l in out["lifts"] if l["pattern"] == "h_push"][0]
+        self.assertAlmostEqual(press["load"], 80.0)
+
+    def test_bodyweight_loaded_lifts_are_excluded(self):
+        # A 20 kg weighted pull-up is not a 20 kg lift; reporting it as one
+        # would understate v_pull badly.
+        rows = [c("2026-W30", "pull-up", 20, 5)]
+        out = progress.relative_strength(rows, 100.0, "2026-W30")
+        self.assertEqual(out["lifts"], [])
+        self.assertIn("v_pull", out["missing"])
+
+    def test_missing_patterns_are_named_not_hidden(self):
+        rows = [c("2026-W30", "back-squat", 100, 5)]
+        out = progress.relative_strength(rows, 100.0, "2026-W30")
+        self.assertEqual(sorted(out["missing"]), ["h_push", "hinge", "v_pull"])
+
+    def test_only_the_trailing_eight_weeks_count(self):
+        rows = [c("2026-W10", "back-squat", 100, 5)]
+        out = progress.relative_strength(rows, 100.0, "2026-W30")
+        self.assertEqual(out["lifts"], [])
+        self.assertIsNone(out["total"])
+
+    def test_best_lift_in_the_window_wins(self):
+        rows = [c("2026-W29", "back-squat", 100, 5),
+                c("2026-W30", "back-squat", 90, 5)]
+        out = progress.relative_strength(rows, 100.0, "2026-W30")
+        self.assertAlmostEqual(out["lifts"][0]["load"], 116.67, places=1)
+
+    def test_no_bodyweight_means_no_metric(self):
+        rows = [c("2026-W30", "back-squat", 100, 5)]
+        self.assertIsNone(progress.relative_strength(rows, None, "2026-W30"))
+
+
 if __name__ == "__main__":
     unittest.main()
