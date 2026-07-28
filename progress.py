@@ -106,3 +106,51 @@ def slug_series(completions):
     for pts in series.values():
         pts.sort(key=lambda p: p[0])
     return series
+
+
+def indexed_series(completions):
+    """{slug: [(week, percent-of-baseline)]} for slugs logged more than once.
+
+    Indexing against each lift's own first log is what makes the weekly
+    exercise rotation harmless: percentages are unitless, so a goblet squat and
+    a leg press can be averaged without pretending they are the same movement.
+    It also cancels the per-dumbbell logging convention for free.
+    """
+    out = {}
+    for slug, points in slug_series(completions).items():
+        if len(points) < 2:
+            continue
+        baseline = points[0][1]
+        if baseline <= 0:
+            continue
+        out[slug] = [(week, 100.0 * value / baseline) for week, value in points]
+    return out
+
+
+def strength_index(completions, latest_week):
+    """[(week, index | None)] from the first log to latest_week.
+
+    Each point averages the most recent reading of every qualifying lift seen
+    in that week or the three before it. Weeks with nothing qualifying get
+    None, which the chart draws as a gap rather than a fall to zero.
+    """
+    series = indexed_series(completions)
+    if not series:
+        return []
+
+    first = min(points[0][0] for points in series.values())
+    if first > latest_week:
+        return []
+
+    out = []
+    for week in week_range(first, latest_week):
+        cutoff = week_to_date(week) - datetime.timedelta(
+            weeks=INDEX_WINDOW_WEEKS - 1)
+        latest = {}
+        for slug, points in series.items():
+            inside = [(w, v) for w, v in points
+                      if cutoff <= week_to_date(w) <= week_to_date(week)]
+            if inside:
+                latest[slug] = inside[-1][1]
+        out.append((week, sum(latest.values()) / len(latest) if latest else None))
+    return out

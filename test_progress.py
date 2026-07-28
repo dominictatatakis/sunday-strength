@@ -73,5 +73,59 @@ class TestSlugSeries(unittest.TestCase):
         self.assertEqual(progress.slug_series([c("2026-W30", "plank")]), {})
 
 
+class TestStrengthIndex(unittest.TestCase):
+    def test_baseline_is_the_first_log_at_100(self):
+        rows = [c("2026-W30", "leg-press", 80, 3),
+                c("2026-W31", "leg-press", 88, 3)]
+        idx = dict(progress.strength_index(rows, "2026-W31"))
+        self.assertAlmostEqual(idx["2026-W30"], 100.0)
+        self.assertAlmostEqual(idx["2026-W31"], 110.0)
+
+    def test_single_log_slugs_are_excluded(self):
+        # A slug logged once is 100 by definition. Including it would drag the
+        # mean toward 100 and flatten real progress on everything else.
+        rows = [c("2026-W30", "leg-press", 80, 3),
+                c("2026-W31", "leg-press", 88, 3),
+                c("2026-W31", "bench-press", 60, 5)]
+        idx = dict(progress.strength_index(rows, "2026-W31"))
+        self.assertAlmostEqual(idx["2026-W31"], 110.0)
+
+    def test_rotation_does_not_move_the_index(self):
+        # Two mechanically different squats, each improved 10% against its own
+        # baseline. The Index must read 110, not sawtooth between them.
+        rows = [c("2026-W30", "leg-press", 80, 3),
+                c("2026-W31", "goblet-squat", 30, 10),
+                c("2026-W32", "leg-press", 88, 3),
+                c("2026-W33", "goblet-squat", 33, 10)]
+        idx = dict(progress.strength_index(rows, "2026-W33"))
+        self.assertAlmostEqual(idx["2026-W33"], 110.0)
+
+    def test_window_holds_a_slug_for_four_weeks_then_drops_it(self):
+        rows = [c("2026-W30", "leg-press", 80, 3),
+                c("2026-W31", "leg-press", 88, 3),
+                c("2026-W40", "bench-press", 60, 5),
+                c("2026-W41", "bench-press", 66, 5)]
+        idx = dict(progress.strength_index(rows, "2026-W41"))
+        self.assertAlmostEqual(idx["2026-W34"], 110.0)   # still in window
+        self.assertIsNone(idx["2026-W35"])               # aged out, a gap
+        self.assertAlmostEqual(idx["2026-W41"], 110.0)   # bench now carries it
+
+    def test_latest_log_per_slug_wins_inside_the_window(self):
+        rows = [c("2026-W30", "leg-press", 80, 3),
+                c("2026-W31", "leg-press", 88, 3),
+                c("2026-W32", "leg-press", 96, 3)]
+        idx = dict(progress.strength_index(rows, "2026-W32"))
+        self.assertAlmostEqual(idx["2026-W32"], 120.0)
+
+    def test_bodyweight_only_indexes_on_reps(self):
+        rows = [c("2026-W30", "push-up", None, 10),
+                c("2026-W31", "push-up", None, 13)]
+        idx = dict(progress.strength_index(rows, "2026-W31"))
+        self.assertAlmostEqual(idx["2026-W31"], 130.0)
+
+    def test_no_qualifying_data_is_an_empty_series(self):
+        self.assertEqual(progress.strength_index([], "2026-W31"), [])
+
+
 if __name__ == "__main__":
     unittest.main()
