@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS subscribers (
     status TEXT NOT NULL DEFAULT 'pending',
     stripe_customer_id TEXT,
     stripe_subscription_id TEXT,
+    pinned_metric TEXT DEFAULT 'strength_index',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -60,6 +61,13 @@ CREATE TABLE IF NOT EXISTS completions (
     done_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (subscriber_id, week, day, slug)
 );
+CREATE TABLE IF NOT EXISTS bodyweights (
+    id SERIAL PRIMARY KEY,
+    subscriber_id INTEGER NOT NULL REFERENCES subscribers(id),
+    logged_on TEXT NOT NULL,
+    weight_kg DOUBLE PRECISION NOT NULL,
+    UNIQUE (subscriber_id, logged_on)
+);
 """
 
 # Applied once per process, after SCHEMA_PG. Each must be safe to re-run.
@@ -77,6 +85,7 @@ MIGRATIONS_PG = [
                       AND data_type <> 'text')
          THEN ALTER TABLE sends ALTER COLUMN week TYPE TEXT; END IF;
        END $$""",
+    "ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS pinned_metric TEXT DEFAULT 'strength_index'",
 ]
 
 SCHEMA = """
@@ -92,6 +101,7 @@ CREATE TABLE IF NOT EXISTS subscribers (
     status TEXT NOT NULL DEFAULT 'pending',         -- pending | active | past_due | cancelled
     stripe_customer_id TEXT,
     stripe_subscription_id TEXT,
+    pinned_metric TEXT DEFAULT 'strength_index',
     created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
     updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
@@ -117,6 +127,15 @@ CREATE TABLE IF NOT EXISTS completions (
     done_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
     UNIQUE (subscriber_id, week, day, slug)
 );
+-- Optional bodyweight log. Strength means little without it: load per kg of
+-- you is the number that improves when you are cutting.
+CREATE TABLE IF NOT EXISTS bodyweights (
+    id INTEGER PRIMARY KEY,
+    subscriber_id INTEGER NOT NULL REFERENCES subscribers(id),
+    logged_on TEXT NOT NULL,                        -- 'YYYY-MM-DD'
+    weight_kg REAL NOT NULL,
+    UNIQUE (subscriber_id, logged_on)
+);
 """
 
 # SQLite is dynamically typed, so the sends.week int -> text change needs no
@@ -126,6 +145,7 @@ MIGRATIONS_SQLITE = [
     "ALTER TABLE subscribers ADD COLUMN equipment TEXT NOT NULL DEFAULT 'full'",
     "ALTER TABLE subscribers ADD COLUMN api_key_hash TEXT",
     "ALTER TABLE completions ADD COLUMN sets INTEGER",
+    "ALTER TABLE subscribers ADD COLUMN pinned_metric TEXT DEFAULT 'strength_index'",
 ]
 
 
@@ -382,6 +402,46 @@ def last_logged(conn, subscriber_id: int, before_week: str | None = None) -> dic
             continue
         out.setdefault(r["slug"], dict(r))
     return out
+
+
+def completions_all(conn, subscriber_id: int) -> list:
+    """Every completion, oldest first — the whole history the metrics need."""
+    return [dict(r) for r in conn.execute(
+        "SELECT * FROM completions WHERE subscriber_id = ? ORDER BY week, day",
+        (subscriber_id,)).fetchall()]
+
+
+# --- bodyweight -------------------------------------------------------------
+
+def log_bodyweight(conn, subscriber_id: int, logged_on: str,
+                   weight_kg: float) -> None:
+    """Record a weigh-in. Re-logging the same day overwrites it."""
+    conn.execute(
+        """INSERT INTO bodyweights (subscriber_id, logged_on, weight_kg)
+           VALUES (?, ?, ?)
+           ON CONFLICT(subscriber_id, logged_on) DO UPDATE SET
+             weight_kg = excluded.weight_kg""",
+        (subscriber_id, logged_on, weight_kg))
+    conn.commit()
+
+
+def bodyweights(conn, subscriber_id: int) -> list:
+    return [dict(r) for r in conn.execute(
+        "SELECT * FROM bodyweights WHERE subscriber_id = ? ORDER BY logged_on",
+        (subscriber_id,)).fetchall()]
+
+
+def latest_bodyweight(conn, subscriber_id: int):
+    rows = conn.execute(
+        "SELECT weight_kg FROM bodyweights WHERE subscriber_id = ? "
+        "ORDER BY logged_on DESC LIMIT 1", (subscriber_id,)).fetchall()
+    return rows[0]["weight_kg"] if rows else None
+
+
+def set_pinned_metric(conn, subscriber_id: int, metric: str) -> None:
+    conn.execute("UPDATE subscribers SET pinned_metric = ? WHERE id = ?",
+                 (metric, subscriber_id))
+    conn.commit()
 
 
 # --- API keys (for the plan page's own fetches and future apps) ------------
