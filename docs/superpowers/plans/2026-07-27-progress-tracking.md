@@ -4,7 +4,7 @@
 
 **Goal:** Ship `/account/progress`, a page showing every Sunday Strength subscriber whether they are getting stronger, computed from the `completions` they already log.
 
-**Architecture:** All metric maths lives in a new pure `progress.py` — no I/O, no database, no reading the clock — mirroring the contract `engine.py` holds. `db.py` gains a `bodyweights` table and four queries; `app.py` gains three routes that pass rows into `progress.py` and hand the result to a template. Charts are server-rendered inline SVG with geometry computed in Python, so the page needs no JavaScript.
+**Architecture:** All metric maths lives in a new pure `progress.py` — no I/O, no database, no reading the clock — mirroring the contract `engine.py` holds. `db.py` gains a `bodyweights` table and five queries; `app.py` gains four routes that pass rows into `progress.py` and hand the result to a template. Charts are server-rendered inline SVG with geometry computed in Python, so the page needs no JavaScript.
 
 **Tech Stack:** Python 3.11, FastAPI, Jinja2, SQLite locally / Postgres on Render, stdlib `unittest`. No new dependencies.
 
@@ -27,7 +27,7 @@
 | `progress.py` (new) | Every metric calculation. Pure functions. ~300 lines. |
 | `test_progress.py` (new) | stdlib `unittest` for the maths. |
 | `db.py` (modify) | `bodyweights` table, `pinned_metric` column, four queries. |
-| `app.py` (modify) | `GET /account/progress`, `POST /account/bodyweight`, `GET /api/v1/progress`. |
+| `app.py` (modify) | `GET /account/progress`, `POST /account/progress/pin`, `POST /account/bodyweight`, `GET /api/v1/progress`. |
 | `templates/progress.html` (new) | Page markup, metric cards, SVG charts. |
 | `templates/_nav.html` (modify) | "Progress" link. |
 | `static/style.css` (modify) | Card and chart styles. |
@@ -1153,11 +1153,16 @@ def _progress_context(sub) -> dict:
              "equipment": db.sub_equipment(sub)}
 
     index = progress.strength_index(rows, week)
+    # The Index emits None for any week with nothing qualifying in its window.
+    # Show the most recent real reading and date it, rather than inventing a
+    # number for someone who trained in June and stopped.
+    index_latest = next(((w, v) for w, v in reversed(index) if v is not None),
+                        None)
     pinned = sub["pinned_metric"] if "pinned_metric" in sub.keys() else None
     return {
         "sub": sub, "active": "progress", "logged": bool(rows),
-        "bodyweight": bodyweight,
-        "strength_index": index,
+        "bodyweight": bodyweight, "current_week": week,
+        "strength_index": index, "index_latest": index_latest,
         "index_chart": progress.sparkline([v for _w, v in index]),
         "relative": progress.relative_strength(rows, bodyweight, week),
         "consistency": progress.consistency(rows, prefs, week),
@@ -1167,7 +1172,7 @@ def _progress_context(sub) -> dict:
         "metrics": progress.METRICS,
         # Strength needs two logs of one lift; consistency works from day one,
         # so it carries the hero until the Index has something true to say.
-        "pinned": (pinned or "strength_index") if index else "consistency",
+        "pinned": (pinned or "strength_index") if index_latest else "consistency",
     }
 
 
@@ -1218,10 +1223,12 @@ def progress_page(request: Request):
   {% endmacro %}
 
   <section class="card hero">
-    {% if pinned == 'strength_index' and strength_index %}
+    {% if pinned == 'strength_index' and index_latest %}
       <h2>Strength Index</h2>
-      <p class="big">{{ '%.0f'|format(strength_index[-1][1] or 100) }}</p>
-      <p class="sub">vs. your first logged session (100)</p>
+      <p class="big">{{ '%.0f'|format(index_latest[1]) }}</p>
+      <p class="sub">vs. your first logged session (100){%
+        if index_latest[0] != current_week %} — as of
+        {{ index_latest[0] }}{% endif %}</p>
       {{ chart(index_chart, 'Strength Index over time', strength_index) }}
     {% elif pinned == 'relative_strength' and relative %}
       <h2>Relative strength</h2>
@@ -1247,7 +1254,7 @@ def progress_page(request: Request):
     </form>
   </section>
 
-  {% if not strength_index %}
+  {% if not index_latest %}
   <section class="card">
     <h2>Strength Index</h2>
     <p class="empty">Log the same exercise twice and this starts working. It
@@ -1334,7 +1341,26 @@ def progress_pin(request: Request, metric: str = Form(...)):
     return RedirectResponse("/account/progress", status_code=303)
 ```
 
-- [ ] **Step 4: Add the nav link**
+- [ ] **Step 4: Add the bodyweight route to `app.py`**
+
+The template above posts to this, so the page is not testable without it.
+
+```python
+@app.post("/account/bodyweight")
+def bodyweight_log(request: Request, weight_kg: float = Form(...)):
+    sub = _current_sub(request)
+    if not sub:
+        return RedirectResponse("/login", status_code=303)
+    # A stray 1000 would flatten every relative-strength reading at once, and
+    # the browser's min/max is only a hint — anything can POST here.
+    if not (progress.MIN_BODYWEIGHT_KG <= weight_kg <= progress.MAX_BODYWEIGHT_KG):
+        raise HTTPException(400, "Bodyweight must be between 30 and 300 kg.")
+    db.log_bodyweight(db.connect(), sub["id"],
+                      datetime.date.today().isoformat(), weight_kg)
+    return RedirectResponse("/account/progress", status_code=303)
+```
+
+- [ ] **Step 5: Add the nav link**
 
 In `templates/_nav.html`, after the "This week" link:
 
@@ -1342,7 +1368,7 @@ In `templates/_nav.html`, after the "This week" link:
     <a href="/account/progress" {% if active == 'progress' %}class="on"{% endif %}>Progress</a>
 ```
 
-- [ ] **Step 5: Add styles**
+- [ ] **Step 6: Add styles**
 
 Append to `static/style.css`, using the existing custom properties rather than new colour literals:
 
@@ -1368,7 +1394,7 @@ The palette is defined in `:root` at the top of `style.css`. The accent is `--ac
 }
 ```
 
-- [ ] **Step 6: Drive the real flow**
+- [ ] **Step 7: Drive the real flow**
 
 Run:
 
@@ -1384,7 +1410,7 @@ Log in as `seed@example.com` and open `/account/progress`. Confirm:
 4. **With JavaScript disabled**, all of the above still works — every control is a real form.
 5. A fresh subscriber (sign up a second address, log nothing) sees the empty state, no charts and no zeroes.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add app.py templates/progress.html templates/_nav.html static/style.css
@@ -1393,55 +1419,8 @@ git commit -m "Show progress: strength index, relative strength, consistency"
 
 ---
 
-### Task 9: Bodyweight logging
 
-**Files:**
-- Modify: `app.py`
-
-**Interfaces:**
-- Consumes: `db.log_bodyweight` (Task 6), `progress.MIN_BODYWEIGHT_KG` / `MAX_BODYWEIGHT_KG` (Task 1). The form already exists in the template from Task 8.
-- Produces: `POST /account/bodyweight`.
-
-- [ ] **Step 1: Add the route**
-
-```python
-@app.post("/account/bodyweight")
-def bodyweight_log(request: Request, weight_kg: float = Form(...)):
-    sub = _current_sub(request)
-    if not sub:
-        return RedirectResponse("/login", status_code=303)
-    # A stray 1000 would flatten every relative-strength reading at once, and
-    # the browser's min/max is only a hint — anything can POST here.
-    if not (progress.MIN_BODYWEIGHT_KG <= weight_kg <= progress.MAX_BODYWEIGHT_KG):
-        raise HTTPException(400, "Bodyweight must be between 30 and 300 kg.")
-    db.log_bodyweight(db.connect(), sub["id"],
-                      datetime.date.today().isoformat(), weight_kg)
-    return RedirectResponse("/account/progress", status_code=303)
-```
-
-- [ ] **Step 2: Verify validation rejects nonsense**
-
-With the app running on 8123 and logged in as `seed@example.com`:
-
-```bash
-curl -s -o /dev/null -w '%{http_code}\n' -X POST \
-  http://127.0.0.1:8123/account/bodyweight -d 'weight_kg=1000'
-```
-
-Expected: `400` (or `303` to `/login` if the cookie is absent — send the session cookie with `-b` to test the real path).
-
-Then submit a valid weight through the browser form and confirm the relative-strength card appears with ratios.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add app.py
-git commit -m "Log bodyweight, rejecting values outside 30-300kg"
-```
-
----
-
-### Task 10: JSON API
+### Task 9: JSON API
 
 **Files:**
 - Modify: `app.py`
@@ -1495,7 +1474,7 @@ git commit -m "Expose progress metrics over the JSON API"
 
 ---
 
-### Task 11: Documentation
+### Task 10: Documentation
 
 **Files:**
 - Modify: `CLAUDE.md`, `README.md`
