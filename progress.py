@@ -203,3 +203,78 @@ def relative_strength(completions, bodyweight_kg, latest_week):
     missing = [p for p in MAIN_PATTERNS if p not in best]
     total = (sum(l["load"] for l in lifts) / bodyweight_kg) if lifts else None
     return {"total": total, "lifts": lifts, "missing": missing}
+
+
+def planned_week(prefs, iso_week):
+    """The plan the subscriber was given that week.
+
+    Plans are deterministic, so what was prescribed is always recoverable from
+    (week, prefs) — nothing needs storing to know what they were meant to do.
+    """
+    return engine.generate_plan(iso_week, prefs["days"], prefs["experience"],
+                                prefs["include_run"], prefs["equipment"])
+
+
+def consistency(completions, prefs, latest_week):
+    """Sessions done against sessions planned, plus the current streak.
+
+    A day counts as trained once half its prescribed exercises are logged —
+    forgiving on purpose, since a session cut short is still a session.
+    """
+    if not completions:
+        return {"weeks": [], "streak": 0}
+
+    logged = {}
+    for row in completions:
+        logged.setdefault((row["week"], row["day"]), set()).add(row["slug"])
+
+    first = min(row["week"] for row in completions)
+    weeks = []
+    for week in week_range(first, latest_week):
+        plan = planned_week(prefs, int(week[6:]))
+        done = 0
+        for index, day in enumerate(plan["days"], start=1):
+            prescribed = {ex["slug"] for ex in day["exercises"]}
+            if not prescribed:
+                continue
+            hit = len(prescribed & logged.get((week, index), set()))
+            if hit / len(prescribed) >= SESSION_THRESHOLD:
+                done += 1
+        weeks.append({"week": week, "done": done, "planned": prefs["days"]})
+
+    streak = 0
+    for entry in reversed(weeks):
+        if entry["done"] < entry["planned"]:
+            break
+        streak += 1
+    return {"weeks": weeks, "streak": streak}
+
+
+def tonnage(completions, latest_week):
+    """Weekly training volume: sets x reps x weight.
+
+    Subscribers who never log a load would see a flat zero, so for them the
+    series counts reps instead and says so. The choice is made once across all
+    history, not per week, or the label would flicker.
+    """
+    if not completions:
+        return {"weeks": [], "unit": "kg"}
+
+    loaded = any(row.get("weight_kg") for row in completions)
+    totals = {}
+    for row in completions:
+        reps, sets = row.get("reps"), row.get("sets") or 1
+        if not reps:
+            continue
+        if loaded:
+            weight = row.get("weight_kg")
+            if not weight:
+                continue
+            totals[row["week"]] = totals.get(row["week"], 0.0) + sets * reps * weight
+        else:
+            totals[row["week"]] = totals.get(row["week"], 0.0) + sets * reps
+
+    first = min(row["week"] for row in completions)
+    weeks = [{"week": week, "value": totals.get(week, 0.0)}
+             for week in week_range(first, latest_week)]
+    return {"weeks": weeks, "unit": "kg" if loaded else "reps"}

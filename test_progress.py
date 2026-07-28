@@ -172,5 +172,73 @@ class TestRelativeStrength(unittest.TestCase):
         self.assertIsNone(progress.relative_strength(rows, None, "2026-W30"))
 
 
+PREFS = {"days": 3, "experience": "beginner", "include_run": False,
+         "equipment": "full"}
+
+
+class TestConsistency(unittest.TestCase):
+    def _full_day(self, week, day):
+        """Every exercise the engine prescribes for that day, logged."""
+        iso = int(week[6:])
+        plan = progress.planned_week(PREFS, iso)
+        return [c(week, ex["slug"], 60, 10, day=day)
+                for ex in plan["days"][day - 1]["exercises"]]
+
+    def test_counts_completed_sessions(self):
+        rows = self._full_day("2026-W30", 1) + self._full_day("2026-W30", 2)
+        out = progress.consistency(rows, PREFS, "2026-W30")
+        self.assertEqual(out["weeks"][-1], {"week": "2026-W30", "done": 2,
+                                            "planned": 3})
+
+    def test_half_a_session_counts(self):
+        rows = self._full_day("2026-W30", 1)
+        half = rows[:max(1, len(rows) // 2)]
+        out = progress.consistency(half, PREFS, "2026-W30")
+        self.assertEqual(out["weeks"][-1]["done"], 1)
+
+    def test_one_exercise_of_four_does_not_count(self):
+        rows = self._full_day("2026-W30", 1)[:1]
+        out = progress.consistency(rows, PREFS, "2026-W30")
+        self.assertEqual(out["weeks"][-1]["done"], 0)
+
+    def test_streak_counts_back_from_the_latest_week(self):
+        rows = []
+        for week in ("2026-W29", "2026-W30"):
+            for day in (1, 2, 3):
+                rows += self._full_day(week, day)
+        out = progress.consistency(rows, PREFS, "2026-W30")
+        self.assertEqual(out["streak"], 2)
+
+    def test_a_missed_week_breaks_the_streak(self):
+        rows = []
+        for day in (1, 2, 3):
+            rows += self._full_day("2026-W28", day)
+            rows += self._full_day("2026-W30", day)
+        out = progress.consistency(rows, PREFS, "2026-W30")
+        self.assertEqual(out["streak"], 1)
+
+
+class TestTonnage(unittest.TestCase):
+    def test_sets_times_reps_times_weight(self):
+        rows = [c("2026-W30", "leg-press", 80, 10, sets=3)]
+        out = progress.tonnage(rows, "2026-W30")
+        self.assertEqual(out["unit"], "kg")
+        self.assertAlmostEqual(out["weeks"][-1]["value"], 2400.0)
+
+    def test_missing_sets_counts_as_one(self):
+        rows = [c("2026-W30", "leg-press", 80, 10)]
+        out = progress.tonnage(rows, "2026-W30")
+        self.assertAlmostEqual(out["weeks"][-1]["value"], 800.0)
+
+    def test_falls_back_to_reps_when_nothing_is_loaded(self):
+        rows = [c("2026-W30", "push-up", None, 20, sets=3)]
+        out = progress.tonnage(rows, "2026-W30")
+        self.assertEqual(out["unit"], "reps")
+        self.assertAlmostEqual(out["weeks"][-1]["value"], 60.0)
+
+    def test_empty_history_is_empty(self):
+        self.assertEqual(progress.tonnage([], "2026-W30")["weeks"], [])
+
+
 if __name__ == "__main__":
     unittest.main()
