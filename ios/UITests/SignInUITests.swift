@@ -28,6 +28,16 @@ final class SignInUITests: XCTestCase {
         return reachable
     }
 
+    /// The plan screen is identified by its Sign out control plus at least one
+    /// exercise row, rather than by any particular exercise: which movements
+    /// appear depends on the week, and this test should not break every Monday.
+    private func planIsShowing(_ app: XCUIApplication) -> Bool {
+        guard app.buttons["Sign out"].waitForExistence(timeout: 15) else {
+            return false
+        }
+        return app.cells.firstMatch.waitForExistence(timeout: 5)
+    }
+
     /// Signs out first if a previous run left credentials in the Keychain.
     private func signOutIfNeeded(_ app: XCUIApplication) {
         let signOut = app.buttons["Sign out"]
@@ -56,9 +66,7 @@ final class SignInUITests: XCTestCase {
         signOutIfNeeded(app)
         signIn(app, password: password)
 
-        XCTAssertTrue(app.staticTexts["Signed in as \(email)"]
-                        .waitForExistence(timeout: 15),
-                      "did not reach the signed-in screen")
+        XCTAssertTrue(planIsShowing(app), "did not reach the plan screen")
     }
 
     /// The whole point of storing credentials: a 30-day cookie must not mean
@@ -68,14 +76,12 @@ final class SignInUITests: XCTestCase {
         app.launch()
         signOutIfNeeded(app)
         signIn(app, password: password)
-        XCTAssertTrue(app.staticTexts["Signed in as \(email)"]
-                        .waitForExistence(timeout: 15))
+        XCTAssertTrue(planIsShowing(app))
 
         app.terminate()
         app.launch()
 
-        XCTAssertTrue(app.staticTexts["Signed in as \(email)"]
-                        .waitForExistence(timeout: 15),
+        XCTAssertTrue(planIsShowing(app),
                       "the app asked for a password again after a relaunch")
     }
 

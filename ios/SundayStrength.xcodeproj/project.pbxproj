@@ -7,10 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C40C500D21BEA1C11C7FA25 /* ExerciseRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF921D75CAF0587340D67AD3 /* ExerciseRow.swift */; };
 		0CE5A7705113F213AC06F463 /* SundayStrengthApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDAF3B959A8167A0009165A /* SundayStrengthApp.swift */; };
 		136B60DCA8855CD315C44503 /* JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 259F8DF97FF07689B4BBE36B /* JSON.swift */; };
 		253232219639D59DF5507627 /* Plan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A993A9AADDCA4CB1146382F2 /* Plan.swift */; };
 		4003808F7CF3B5D8D1C78477 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA7A7CB445766F537D042521 /* LoginView.swift */; };
+		448F07FD1D0B0BF811C7A776 /* DayCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB99F9BD3A61696E73D52D3B /* DayCard.swift */; };
 		65F3BFBB58074402F6B22899 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16ACB5981A5DCAA8D88D86F7 /* APIClient.swift */; };
 		6DCB73254810798187AAE35F /* plan.json in Resources */ = {isa = PBXBuildFile; fileRef = 4C9F6F680B1E3FB768A9F170 /* plan.json */; };
 		84DA5BC373E1BF97EA84B620 /* APIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3AE8794C049E9F93177F44C /* APIClientTests.swift */; };
@@ -63,12 +65,14 @@
 		968BFA36573BBB7B56205E69 /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
 		A92B63FD452803A43C72BB04 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		A993A9AADDCA4CB1146382F2 /* Plan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Plan.swift; sourceTree = "<group>"; };
+		AB99F9BD3A61696E73D52D3B /* DayCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayCard.swift; sourceTree = "<group>"; };
 		B5307D02B6BCD0AD904EDFAC /* SundayStrengthUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SundayStrengthUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B883BBF8D1E20992AA73C1A8 /* SundayStrength.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SundayStrength.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA64F5E44F05818270F3D724 /* me.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = me.json; sourceTree = "<group>"; };
 		BA7A7CB445766F537D042521 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		BFE89D4ED687339B9C4A3639 /* SundayStrengthTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SundayStrengthTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3AE8794C049E9F93177F44C /* APIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientTests.swift; sourceTree = "<group>"; };
+		DF921D75CAF0587340D67AD3 /* ExerciseRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseRow.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -130,6 +134,8 @@
 		BE2F590D564702BA3799E8CC /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				AB99F9BD3A61696E73D52D3B /* DayCard.swift */,
+				DF921D75CAF0587340D67AD3 /* ExerciseRow.swift */,
 				BA7A7CB445766F537D042521 /* LoginView.swift */,
 				968BFA36573BBB7B56205E69 /* PlanView.swift */,
 				7B8744E7DE5249C4C013FD47 /* RootView.swift */,
@@ -297,6 +303,8 @@
 				AB8B4133469B98DA7CF2E3CE /* AppConfig.swift in Sources */,
 				DC3A5DED9F11A76BA1A6B401 /* AppModel.swift in Sources */,
 				A1EBE804C7049EC2DEE4F8AF /* Completion.swift in Sources */,
+				448F07FD1D0B0BF811C7A776 /* DayCard.swift in Sources */,
+				0C40C500D21BEA1C11C7FA25 /* ExerciseRow.swift in Sources */,
 				136B60DCA8855CD315C44503 /* JSON.swift in Sources */,
 				EB7D0337F3557A5ED0C8A101 /* Keychain.swift in Sources */,
 				4003808F7CF3B5D8D1C78477 /* LoginView.swift in Sources */,
