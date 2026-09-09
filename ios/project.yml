@@ -1,0 +1,39 @@
+name: SundayStrength
+options:
+  bundleIdPrefix: com.sundaystrength
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    CODE_SIGNING_REQUIRED: "NO"
+    CODE_SIGNING_ALLOWED: "NO"
+    CODE_SIGN_IDENTITY: ""
+targets:
+  SundayStrength:
+    type: application
+    platform: iOS
+    sources:
+      - path: SundayStrength
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sundaystrength.app
+        GENERATE_INFOPLIST_FILE: "NO"
+        INFOPLIST_FILE: SundayStrength/Info.plist
+    info:
+      path: SundayStrength/Info.plist
+      properties:
+        CFBundleDisplayName: Sunday Strength
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+  SundayStrengthTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: SundayStrength

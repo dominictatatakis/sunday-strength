@@ -210,8 +210,8 @@ Expected: `Created project at .../ios/SundayStrength.xcodeproj`
 
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj \
-  -scheme SundayStrength -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 15' \
+  -scheme SundayStrength \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -derivedDataPath build build 2>&1 | tail -20
 ```
 Expected: `** BUILD SUCCEEDED **`
@@ -220,8 +220,8 @@ Expected: `** BUILD SUCCEEDED **`
 
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj \
-  -scheme SundayStrength -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 15' \
+  -scheme SundayStrength \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -derivedDataPath build test 2>&1 | tail -20
 ```
 Expected: `** TEST SUCCEEDED **`
@@ -229,7 +229,7 @@ Expected: `** TEST SUCCEEDED **`
 - [ ] **Step 9: Boot the simulator, install, launch, screenshot**
 
 ```bash
-xcrun simctl boot "iPhone 15" 2>/dev/null || true
+xcrun simctl boot "iPhone 17" 2>/dev/null || true
 open -a Simulator
 xcrun simctl install booted \
   ios/build/Build/Products/Debug-iphonesimulator/SundayStrength.app
@@ -367,7 +367,7 @@ final class ModelDecodingTests: XCTestCase {
 
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
-  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -derivedDataPath build test 2>&1 | tail -20
 ```
 Expected: FAIL — `cannot find 'JSON' in scope`.
@@ -479,7 +479,7 @@ rm ios/Tests/PlaceholderTests.swift
 
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
-  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -derivedDataPath build test 2>&1 | tail -20
 ```
 Expected: `** TEST SUCCEEDED **`, 4 tests passing.
@@ -552,7 +552,7 @@ final class KeychainTests: XCTestCase {
 
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
-  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -derivedDataPath build test 2>&1 | tail -20
 ```
 Expected: FAIL — `cannot find 'Keychain' in scope`.
@@ -620,7 +620,7 @@ enum Keychain {
 
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
-  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -derivedDataPath build test 2>&1 | tail -20
 ```
 Expected: `** TEST SUCCEEDED **`, 8 tests passing.
@@ -857,7 +857,7 @@ private extension URLRequest {
 
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
-  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -derivedDataPath build test 2>&1 | tail -20
 ```
 Expected: FAIL — `cannot find 'APIClient' in scope`.
@@ -1006,7 +1006,7 @@ actor APIClient {
 
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
-  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -derivedDataPath build test 2>&1 | tail -20
 ```
 Expected: `** TEST SUCCEEDED **`, 16 tests passing.
@@ -1238,7 +1238,7 @@ struct SundayStrengthApp: App {
 
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
-  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -derivedDataPath build test 2>&1 | tail -20
 ```
 Expected: `** TEST SUCCEEDED **`, still 16 tests.
@@ -1256,7 +1256,7 @@ sleep 2
 
 Install and launch:
 ```bash
-xcrun simctl boot "iPhone 15" 2>/dev/null || true
+xcrun simctl boot "iPhone 17" 2>/dev/null || true
 open -a Simulator
 xcrun simctl install booted \
   ios/build/Build/Products/Debug-iphonesimulator/SundayStrength.app
@@ -1435,7 +1435,7 @@ struct PlanView: View {
 
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
-  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -derivedDataPath build build 2>&1 | tail -20
 ```
 Expected: `** BUILD SUCCEEDED **`
@@ -1808,7 +1808,7 @@ final class AppModelTests: XCTestCase {
 
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
-  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -derivedDataPath build test 2>&1 | tail -20
 ```
 Expected: `** TEST SUCCEEDED **`, 18 tests passing.
@@ -1946,7 +1946,7 @@ final class OfflineQueueTests: XCTestCase {
 
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
-  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -derivedDataPath build test 2>&1 | tail -20
 ```
 Expected: FAIL — `cannot find 'OfflineQueue' in scope`.
@@ -2009,7 +2009,7 @@ actor OfflineQueue {
 
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
-  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -derivedDataPath build test 2>&1 | tail -20
 ```
 Expected: `** TEST SUCCEEDED **`, 25 tests passing.
@@ -2201,7 +2201,7 @@ scheme's run arguments.
 
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
-  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -derivedDataPath build test
 ```
 

@@ -5,3 +5,6 @@ __pycache__/
 static/exercises/*.jpg
 static/exdb.json
 .superpowers/
+ios/build/
+ios/DerivedData/
+xcuserdata/
