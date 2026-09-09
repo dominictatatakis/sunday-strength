@@ -41,8 +41,11 @@ mid-session is a bad gym app, so credentials go into the Keychain
 (`kSecAttrAccessibleAfterFirstUnlock`, so a background refresh works while the
 phone is locked, provided it has been unlocked once since boot) and the client
 re-authenticates silently on the first 401, retrying the original request once.
-Two consecutive silent-login failures mean the password genuinely changed:
-clear the Keychain and show the login screen.
+A silent login that is *rejected* means the password genuinely changed, so the
+Keychain is cleared and the login screen shown. A silent login that merely
+*fails to connect* means no such thing, so the app stays signed in on its
+cached plan. Conflating the two would sign people out every time they walked
+into a basement gym.
 
 The password is stored, not just the cookie, because there is no refresh token
 to store instead. This is the standard shape for an app talking to a
