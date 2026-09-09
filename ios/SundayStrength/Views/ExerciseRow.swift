@@ -4,7 +4,21 @@ struct ExerciseRow: View {
     let exercise: PlanExercise
     let day: Int
 
+    @State private var showingLog = false
+
     var body: some View {
+        Button {
+            showingLog = true
+        } label: {
+            rowContent
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showingLog) {
+            LogSheet(exercise: exercise, day: day)
+        }
+    }
+
+    private var rowContent: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Image(systemName: exercise.done ? "checkmark.circle.fill" : "circle")
                 .foregroundStyle(exercise.done ? .green : .secondary)
@@ -23,7 +37,11 @@ struct ExerciseRow: View {
                 }
             }
             Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
+        .contentShape(Rectangle())
         .padding(.vertical, 6)
     }
 

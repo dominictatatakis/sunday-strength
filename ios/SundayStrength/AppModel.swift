@@ -14,6 +14,7 @@ final class AppModel {
     private(set) var me: Me?
     private(set) var plan: Plan?
     private(set) var isOffline = false
+    var errorMessage: String?
 
     private let api: APIClient
 
@@ -66,6 +67,80 @@ final class AppModel {
         me = nil
         plan = nil
         phase = .signedOut(nil)
+    }
+
+    /// Optimistic: the row changes immediately, because waiting for a round
+    /// trip between every set is unusable in a gym.
+    func log(day: Int, slug: String, sets: Int?, reps: Int?,
+             weightKg: Double?) async {
+        let previous = exercise(day: day, slug: slug)
+        update(day: day, slug: slug) {
+            $0.done = true
+            $0.setsDone = sets
+            $0.reps = reps
+            $0.weightKg = weightKg
+        }
+        await push(.init(slug: slug, day: day, week: weekKey, sets: sets,
+                         reps: reps, weightKg: weightKg, done: true),
+                   revertTo: previous)
+    }
+
+    func untick(day: Int, slug: String) async {
+        let previous = exercise(day: day, slug: slug)
+        update(day: day, slug: slug) {
+            $0.done = false
+            $0.setsDone = nil
+            $0.reps = nil
+            $0.weightKg = nil
+        }
+        await push(.init(slug: slug, day: day, week: weekKey, sets: nil,
+                         reps: nil, weightKg: nil, done: false),
+                   revertTo: previous)
+    }
+
+    private func push(_ body: CompletionBody,
+                      revertTo previous: PlanExercise?) async {
+        do {
+            try await api.setCompletion(body)
+            errorMessage = nil
+            isOffline = false
+        } catch APIError.rejected(let detail) {
+            // The plan drifted: this tick will never be accepted, so put the
+            // row back and refetch rather than retrying forever.
+            if let previous { revert(day: body.day, to: previous) }
+            errorMessage = detail
+            await loadPlan()
+        } catch APIError.notAuthorised {
+            await restore()
+        } catch {
+            // Network failure: keep the optimistic state.
+            isOffline = true
+        }
+    }
+
+    private var weekKey: String {
+        plan?.weekKey ?? ""
+    }
+
+    private func exercise(day: Int, slug: String) -> PlanExercise? {
+        plan?.days.first { $0.day == day }?
+            .exercises.first { $0.slug == slug }
+    }
+
+    private func update(day: Int, slug: String,
+                        transform: (inout PlanExercise) -> Void) {
+        guard var plan else { return }
+        guard let d = plan.days.firstIndex(where: { $0.day == day }),
+              let e = plan.days[d].exercises.firstIndex(where: { $0.slug == slug })
+        else { return }
+        transform(&plan.days[d].exercises[e])
+        self.plan = plan
+    }
+
+    /// Named `revert`, not `restore`, so it cannot be confused with the
+    /// sign-in `restore()` above.
+    private func revert(day: Int, to exercise: PlanExercise) {
+        update(day: day, slug: exercise.slug) { $0 = exercise }
     }
 
     func loadPlan() async {

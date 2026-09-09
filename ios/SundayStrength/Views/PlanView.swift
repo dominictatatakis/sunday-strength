@@ -6,6 +6,11 @@ struct PlanView: View {
     var body: some View {
         NavigationStack {
             List {
+                if let error = model.errorMessage {
+                    Text(error)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
                 if model.isOffline {
                     Text("Offline — showing your last saved plan.")
                         .font(.footnote)

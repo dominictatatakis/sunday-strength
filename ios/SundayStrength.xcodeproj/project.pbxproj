@@ -13,8 +13,10 @@
 		253232219639D59DF5507627 /* Plan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A993A9AADDCA4CB1146382F2 /* Plan.swift */; };
 		4003808F7CF3B5D8D1C78477 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA7A7CB445766F537D042521 /* LoginView.swift */; };
 		448F07FD1D0B0BF811C7A776 /* DayCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB99F9BD3A61696E73D52D3B /* DayCard.swift */; };
+		599FB898BE117EAEB9E0C770 /* LogSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00C7C2E8E0C6DECDF3046EE /* LogSheet.swift */; };
 		65F3BFBB58074402F6B22899 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16ACB5981A5DCAA8D88D86F7 /* APIClient.swift */; };
 		6DCB73254810798187AAE35F /* plan.json in Resources */ = {isa = PBXBuildFile; fileRef = 4C9F6F680B1E3FB768A9F170 /* plan.json */; };
+		8029C4F2D2F0D306FCCFF596 /* AppUITestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E53F4B70A857796458AB037 /* AppUITestCase.swift */; };
 		84DA5BC373E1BF97EA84B620 /* APIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3AE8794C049E9F93177F44C /* APIClientTests.swift */; };
 		8EEFE8EF018439E21B56AD67 /* me.json in Resources */ = {isa = PBXBuildFile; fileRef = BA64F5E44F05818270F3D724 /* me.json */; };
 		971F31C11AC2A46235CFE9BA /* KeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 623FEC31250FEE5702FD7881 /* KeychainTests.swift */; };
@@ -22,7 +24,9 @@
 		9F2DAB478EEB8B8909019BC9 /* Me.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7718A9A35D1E17CE1BB1860B /* Me.swift */; };
 		A1EBE804C7049EC2DEE4F8AF /* Completion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D73B7785C57418D544C629D /* Completion.swift */; };
 		AB8B4133469B98DA7CF2E3CE /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A92B63FD452803A43C72BB04 /* AppConfig.swift */; };
+		B67CFD68CCA8237D72787F2C /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 569CB00C577E380E88326ECA /* AppModelTests.swift */; };
 		B69738D8E03F9FE746AAF334 /* SignInUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2948834A97B2C8CE871EFA45 /* SignInUITests.swift */; };
+		CF6F683C970FDEC97C49E9C5 /* LoggingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29AFAE192B8D1387978AA1AE /* LoggingUITests.swift */; };
 		CFAC8B82E1A322B15CA67010 /* StubProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724FFF1836763611C2B9DB90 /* StubProtocol.swift */; };
 		D1EA04C473951DCB2DE66D5A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8744E7DE5249C4C013FD47 /* RootView.swift */; };
 		D9A9512F52B7371EA8EC8A3D /* ModelDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3484CF4296C9C695271EABB1 /* ModelDecodingTests.swift */; };
@@ -55,14 +59,17 @@
 		1EB6627A558A1480D58839F3 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
 		259F8DF97FF07689B4BBE36B /* JSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSON.swift; sourceTree = "<group>"; };
 		2948834A97B2C8CE871EFA45 /* SignInUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInUITests.swift; sourceTree = "<group>"; };
+		29AFAE192B8D1387978AA1AE /* LoggingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingUITests.swift; sourceTree = "<group>"; };
 		3484CF4296C9C695271EABB1 /* ModelDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelDecodingTests.swift; sourceTree = "<group>"; };
 		4C9F6F680B1E3FB768A9F170 /* plan.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = plan.json; sourceTree = "<group>"; };
 		52970BF6851ADF2381ACCD1E /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		569CB00C577E380E88326ECA /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
 		623FEC31250FEE5702FD7881 /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
 		724FFF1836763611C2B9DB90 /* StubProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StubProtocol.swift; sourceTree = "<group>"; };
 		7718A9A35D1E17CE1BB1860B /* Me.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Me.swift; sourceTree = "<group>"; };
 		7B8744E7DE5249C4C013FD47 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		968BFA36573BBB7B56205E69 /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
+		9E53F4B70A857796458AB037 /* AppUITestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUITestCase.swift; sourceTree = "<group>"; };
 		A92B63FD452803A43C72BB04 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		A993A9AADDCA4CB1146382F2 /* Plan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Plan.swift; sourceTree = "<group>"; };
 		AB99F9BD3A61696E73D52D3B /* DayCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayCard.swift; sourceTree = "<group>"; };
@@ -73,6 +80,7 @@
 		BFE89D4ED687339B9C4A3639 /* SundayStrengthTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SundayStrengthTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3AE8794C049E9F93177F44C /* APIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientTests.swift; sourceTree = "<group>"; };
 		DF921D75CAF0587340D67AD3 /* ExerciseRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseRow.swift; sourceTree = "<group>"; };
+		E00C7C2E8E0C6DECDF3046EE /* LogSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -123,6 +131,7 @@
 			isa = PBXGroup;
 			children = (
 				C3AE8794C049E9F93177F44C /* APIClientTests.swift */,
+				569CB00C577E380E88326ECA /* AppModelTests.swift */,
 				623FEC31250FEE5702FD7881 /* KeychainTests.swift */,
 				3484CF4296C9C695271EABB1 /* ModelDecodingTests.swift */,
 				724FFF1836763611C2B9DB90 /* StubProtocol.swift */,
@@ -137,6 +146,7 @@
 				AB99F9BD3A61696E73D52D3B /* DayCard.swift */,
 				DF921D75CAF0587340D67AD3 /* ExerciseRow.swift */,
 				BA7A7CB445766F537D042521 /* LoginView.swift */,
+				E00C7C2E8E0C6DECDF3046EE /* LogSheet.swift */,
 				968BFA36573BBB7B56205E69 /* PlanView.swift */,
 				7B8744E7DE5249C4C013FD47 /* RootView.swift */,
 			);
@@ -156,6 +166,8 @@
 		D245EEFC48A5DCC0767081FD /* UITests */ = {
 			isa = PBXGroup;
 			children = (
+				9E53F4B70A857796458AB037 /* AppUITestCase.swift */,
+				29AFAE192B8D1387978AA1AE /* LoggingUITests.swift */,
 				2948834A97B2C8CE871EFA45 /* SignInUITests.swift */,
 			);
 			path = UITests;
@@ -280,6 +292,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8029C4F2D2F0D306FCCFF596 /* AppUITestCase.swift in Sources */,
+				CF6F683C970FDEC97C49E9C5 /* LoggingUITests.swift in Sources */,
 				B69738D8E03F9FE746AAF334 /* SignInUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -289,6 +303,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				84DA5BC373E1BF97EA84B620 /* APIClientTests.swift in Sources */,
+				B67CFD68CCA8237D72787F2C /* AppModelTests.swift in Sources */,
 				971F31C11AC2A46235CFE9BA /* KeychainTests.swift in Sources */,
 				D9A9512F52B7371EA8EC8A3D /* ModelDecodingTests.swift in Sources */,
 				CFAC8B82E1A322B15CA67010 /* StubProtocol.swift in Sources */,
@@ -307,6 +322,7 @@
 				0C40C500D21BEA1C11C7FA25 /* ExerciseRow.swift in Sources */,
 				136B60DCA8855CD315C44503 /* JSON.swift in Sources */,
 				EB7D0337F3557A5ED0C8A101 /* Keychain.swift in Sources */,
+				599FB898BE117EAEB9E0C770 /* LogSheet.swift in Sources */,
 				4003808F7CF3B5D8D1C78477 /* LoginView.swift in Sources */,
 				9F2DAB478EEB8B8909019BC9 /* Me.swift in Sources */,
 				253232219639D59DF5507627 /* Plan.swift in Sources */,
