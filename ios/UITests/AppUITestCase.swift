@@ -59,12 +59,35 @@ class AppUITestCase: XCTestCase {
         app.buttons["Sign in"].tap()
     }
 
+    /// Waits for a condition on an element — existence is not the same as
+    /// being ready to tap.
+    @discardableResult
+    func wait(for element: XCUIElement, toBe predicate: String,
+              timeout: TimeInterval = 15) -> Bool {
+        let expectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: predicate), object: element)
+        return XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed
+    }
+
     /// Launches signed in, whatever state the previous test left behind.
+    ///
+    /// Waits for the keyboard to go before returning. When this signs in via
+    /// the form rather than restoring, the keyboard is still dismissing over
+    /// the plan list, and a tap aimed at the first row lands on nothing — an
+    /// intermittent failure that only appeared when a previous test had
+    /// signed out.
     func launchSignedIn() -> XCUIApplication {
         let app = XCUIApplication()
         app.launch()
         if !app.buttons["Sign out"].waitForExistence(timeout: 8) {
             signIn(app, password: password)
+            XCTAssertTrue(planIsShowing(app), "could not sign in")
+            // Relaunch so the session is restored from the Keychain instead.
+            // On the form path the keyboard is still dismissing over the list
+            // and the first row stays untappable — a failure that only ever
+            // appeared when a previous test had signed out.
+            app.terminate()
+            app.launch()
         }
         XCTAssertTrue(planIsShowing(app), "could not reach the plan screen")
         return app

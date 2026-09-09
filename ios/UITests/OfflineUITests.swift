@@ -8,6 +8,11 @@ final class OfflineUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
+        // The inverse of every other UI test: this one needs the server *down*.
+        // Skipping keeps a normal `xcodebuild test` green; run it deliberately
+        // with the server stopped, as ios/README.md describes.
+        try XCTSkipIf(AppUITestCase.serverIsUp(),
+                      "stop the server on :8123 to run the offline test")
     }
 
     func testTicksASetWithNoConnection() {
@@ -20,8 +25,9 @@ final class OfflineUITests: XCTestCase {
                         .waitForExistence(timeout: 10),
                       "no offline banner")
 
-        // Second row: the first already has a log from the online test.
-        let row = app.cells.buttons.element(boundBy: 1)
+        // Cell 0 is the section header, cell 1 the first exercise (already
+        // logged by the online test), so cell 2 is the one to tick here.
+        let row = app.cells.element(boundBy: 2)
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.tap()
 
@@ -32,7 +38,10 @@ final class OfflineUITests: XCTestCase {
         reps.tap()
         save.tap()
 
-        XCTAssertTrue(app.staticTexts["3 × 12"].waitForExistence(timeout: 10),
+        let logged = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "3 × 12"))
+            .firstMatch
+        XCTAssertTrue(logged.waitForExistence(timeout: 10),
                       "a tick made offline must stay on screen")
     }
 }

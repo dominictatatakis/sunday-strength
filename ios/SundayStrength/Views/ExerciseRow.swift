@@ -2,20 +2,15 @@ import SwiftUI
 
 struct ExerciseRow: View {
     let exercise: PlanExercise
-    let day: Int
-
-    @State private var showingLog = false
+    let onTap: () -> Void
 
     var body: some View {
-        Button {
-            showingLog = true
-        } label: {
-            rowContent
-        }
-        .buttonStyle(.plain)
-        .sheet(isPresented: $showingLog) {
-            LogSheet(exercise: exercise, day: day)
-        }
+        rowContent
+            // The row is the tap target, rather than a Button filling the row:
+            // contentShape makes the whole width tappable including the gaps.
+            .contentShape(Rectangle())
+            .onTapGesture(perform: onTap)
+            .accessibilityAddTraits(.isButton)
     }
 
     private var rowContent: some View {

@@ -201,6 +201,21 @@ itself is shown exactly once.
 owner role with no row-level security, so that's unscoped, unrevokable
 read/write over every subscriber. An API key is per-subscriber and rotatable.
 
+## iOS app
+
+`ios/` holds a native SwiftUI client for iPhone — this week's plan and set
+logging, against the same account and the same API the website uses. It needed
+no server changes: it posts to `/login` like the web form does and rides the
+session cookie, because `_api_sub` falls back to that cookie when there is no
+Bearer header.
+
+Ticks made on the phone go through `_apply_completion` like every other path,
+so they show up on `/account/plan` immediately. It keeps working with no
+signal — the last plan is cached and ticks queue until there is a connection.
+
+See `ios/README.md` to run it. Nothing in `ios/` is installed or served by the
+Python app, so it is inert to deploys.
+
 ## Things that will bite if you change them
 
 - `SECRET_KEY` unset means a random key per process: sessions and email

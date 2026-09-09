@@ -2,11 +2,12 @@ import SwiftUI
 
 struct DayCard: View {
     let day: PlanDay
+    let onSelect: (PlanExercise) -> Void
 
     var body: some View {
         Section {
             ForEach(day.exercises) { exercise in
-                ExerciseRow(exercise: exercise, day: day.day)
+                ExerciseRow(exercise: exercise) { onSelect(exercise) }
             }
         } header: {
             HStack {

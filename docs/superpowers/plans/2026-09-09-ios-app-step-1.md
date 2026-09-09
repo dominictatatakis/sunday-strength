@@ -2308,8 +2308,45 @@ git commit -m "Document how to run the iOS app"
 
 ## Done when
 
-- `xcodebuild test` passes — 26 tests.
+- `xcodebuild test` passes — 27 unit tests and 4 UI tests, with the offline UI
+  test skipped (it needs the server stopped).
 - The app signs in, shows the week, logs a set, and survives a relaunch.
 - A tick made in the simulator is visible on the website's plan page.
 - A tick made with the server down reaches the database once it is back.
-- `git diff --stat master -- '*.py'` is empty.
+- `git diff --stat master <branch> -- '*.py'` is empty.
+
+## What changed while executing this plan
+
+Recorded because each one cost real time and would cost it again.
+
+**Build environment.** `-sdk iphonesimulator` alongside `-destination` empties
+the scheme's supported platforms; a bare `iPhone 15` is ambiguous against the
+Plus/Pro variants; and build products must live outside this repo because the
+folder is file-provider-synced and codesign rejects the xattrs it stamps on.
+
+**Keychain needed three settings, not one.** A test host, ad-hoc signing, and a
+generated Info.plist for the test bundle. Hosting alone still returns
+errSecMissingEntitlement, because an unsigned bundle has no keychain access
+group. `save()` returns its OSStatus now — it failed silently for three runs.
+
+**Regenerate after adding any file.** The project holds an explicit file list,
+so a new test file is not compiled until `xcodegen generate` runs — and the run
+reports `TEST SUCCEEDED` while silently skipping it.
+
+**Verification is by UI test, not by hand.** Keystroke injection into the
+simulator does not work from a terminal without Accessibility permission, and a
+screenshot taken at the wrong moment reads as a bug that is not there — it did,
+twice. `SignInUITests`, `LoggingUITests` and `OfflineUITests` cover the flows;
+they skip themselves when there is no server, and the offline one skips when
+there *is* one.
+
+**The log sheet moved from the row to PlanView.** A per-row `@State` sheet flag
+belongs to a view the list rebuilds whenever the plan reloads, which loses the
+sheet mid-tap. `.sheet(item:)` on the parent is both the idiomatic pattern and
+the stable one.
+
+**Rows are tappable content, not Buttons.** A `.buttonStyle(.plain)` Button
+filling a List row is unreliable for XCUITest to hit. The row now uses
+`contentShape` plus `onTapGesture`, which also merges its text into one
+accessibility element — so assertions match against a descendant's label rather
+than an exact static text.
