@@ -7,9 +7,11 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
+    # Ad-hoc signing, the simulator default. Signing cannot be switched off
+    # entirely: an unsigned bundle has no keychain access group, so every
+    # SecItemAdd fails with errSecMissingEntitlement (-34018).
+    CODE_SIGN_IDENTITY: "-"
     CODE_SIGNING_REQUIRED: "NO"
-    CODE_SIGNING_ALLOWED: "NO"
-    CODE_SIGN_IDENTITY: ""
 targets:
   SundayStrength:
     type: application
@@ -39,3 +41,12 @@ targets:
       - path: Tests/Fixtures
     dependencies:
       - target: SundayStrength
+    settings:
+      base:
+        # Run hosted inside the app. A standalone test bundle has no app
+        # identity and therefore no keychain, which fails SecItemAdd with
+        # errSecMissingEntitlement (-34018).
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/SundayStrength.app/SundayStrength"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        # Signing the bundle requires one; the app target supplies its own.
+        GENERATE_INFOPLIST_FILE: "YES"

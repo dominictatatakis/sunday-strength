@@ -95,9 +95,11 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
+    # Ad-hoc signing, the simulator default. Signing cannot be switched off
+    # entirely: an unsigned bundle has no keychain access group, so every
+    # SecItemAdd fails with errSecMissingEntitlement (-34018).
+    CODE_SIGN_IDENTITY: "-"
     CODE_SIGNING_REQUIRED: "NO"
-    CODE_SIGNING_ALLOWED: "NO"
-    CODE_SIGN_IDENTITY: ""
 targets:
   SundayStrength:
     type: application
@@ -125,7 +127,26 @@ targets:
       - path: Tests
     dependencies:
       - target: SundayStrength
+    settings:
+      base:
+        # Run hosted inside the app. A standalone test bundle has no app
+        # identity and therefore no keychain.
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/SundayStrength.app/SundayStrength"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        # Signing the bundle requires one; the app target supplies its own.
+        GENERATE_INFOPLIST_FILE: "YES"
 ```
+
+**Build products must live outside the repo.** This checkout sits under a
+file-provider-synced folder, which stamps `com.apple.FinderInfo` and
+`com.apple.fileprovider.fpfs#P` onto build output; `codesign` then refuses the
+bundle with "resource fork, Finder information, or similar detritus not
+allowed". Hence `-derivedDataPath /tmp/ss-ios-build` in every command below.
+
+**Regenerate after adding any file.** The project holds an explicit file list,
+so a new `.swift` file is invisible to `xcodebuild` until `xcodegen generate`
+runs — and a test run that silently skips your new test file reports
+`TEST SUCCEEDED`, which looks exactly like success.
 
 `NSAllowsLocalNetworking` is what lets Debug builds reach
 `http://localhost:8123` — App Transport Security blocks cleartext otherwise.
@@ -212,7 +233,7 @@ Expected: `Created project at .../ios/SundayStrength.xcodeproj`
 cd ios && xcodebuild -project SundayStrength.xcodeproj \
   -scheme SundayStrength \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -derivedDataPath build build 2>&1 | tail -20
+  -derivedDataPath /tmp/ss-ios-build build 2>&1 | tail -20
 ```
 Expected: `** BUILD SUCCEEDED **`
 
@@ -222,7 +243,7 @@ Expected: `** BUILD SUCCEEDED **`
 cd ios && xcodebuild -project SundayStrength.xcodeproj \
   -scheme SundayStrength \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -derivedDataPath build test 2>&1 | tail -20
+  -derivedDataPath /tmp/ss-ios-build test 2>&1 | tail -20
 ```
 Expected: `** TEST SUCCEEDED **`
 
@@ -232,7 +253,7 @@ Expected: `** TEST SUCCEEDED **`
 xcrun simctl boot "iPhone 17" 2>/dev/null || true
 open -a Simulator
 xcrun simctl install booted \
-  ios/build/Build/Products/Debug-iphonesimulator/SundayStrength.app
+  /tmp/ss-ios-build/Build/Products/Debug-iphonesimulator/SundayStrength.app
 xcrun simctl launch booted com.sundaystrength.app
 sleep 2
 xcrun simctl io booted screenshot /tmp/ss-task1.png
@@ -368,7 +389,7 @@ final class ModelDecodingTests: XCTestCase {
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -derivedDataPath build test 2>&1 | tail -20
+  -derivedDataPath /tmp/ss-ios-build test 2>&1 | tail -20
 ```
 Expected: FAIL — `cannot find 'JSON' in scope`.
 
@@ -480,7 +501,7 @@ rm ios/Tests/PlaceholderTests.swift
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -derivedDataPath build test 2>&1 | tail -20
+  -derivedDataPath /tmp/ss-ios-build test 2>&1 | tail -20
 ```
 Expected: `** TEST SUCCEEDED **`, 4 tests passing.
 
@@ -503,7 +524,8 @@ git commit -m "Decode the plan and profile endpoints"
 **Interfaces:**
 - Consumes: nothing.
 - Produces: `Keychain.Credentials(email: String, password: String)`,
-  `Keychain.save(_:)`, `Keychain.load() -> Credentials?`, `Keychain.clear()`.
+  `@discardableResult Keychain.save(_:) -> OSStatus`,
+  `Keychain.load() -> Credentials?`, `Keychain.clear()`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -553,7 +575,7 @@ final class KeychainTests: XCTestCase {
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -derivedDataPath build test 2>&1 | tail -20
+  -derivedDataPath /tmp/ss-ios-build test 2>&1 | tail -20
 ```
 Expected: FAIL — `cannot find 'Keychain' in scope`.
 
@@ -621,20 +643,15 @@ enum Keychain {
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -derivedDataPath build test 2>&1 | tail -20
+  -derivedDataPath /tmp/ss-ios-build test 2>&1 | tail -20
 ```
-Expected: `** TEST SUCCEEDED **`, 8 tests passing.
+Expected: `** TEST SUCCEEDED **`, 9 tests passing.
 
-If the Keychain tests fail with `errSecMissingEntitlement` (-34018), the test
-target needs a keychain-sharing entitlement. Add to `project.yml` under
-`SundayStrengthTests`, then regenerate:
-```yaml
-    settings:
-      base:
-        CODE_SIGN_ENTITLEMENTS: Tests/Tests.entitlements
-```
-with `ios/Tests/Tests.entitlements` containing an empty
-`keychain-access-groups` array. Only do this if the error actually appears.
+`errSecMissingEntitlement` (-34018) here means the test bundle is running
+without an app identity. The `TEST_HOST`, `CODE_SIGN_IDENTITY: "-"` and
+`GENERATE_INFOPLIST_FILE` settings in Task 1 are all three required to fix it —
+hosting alone is not enough, because an unsigned bundle still has no keychain
+access group.
 
 - [ ] **Step 5: Commit**
 
@@ -858,7 +875,7 @@ private extension URLRequest {
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -derivedDataPath build test 2>&1 | tail -20
+  -derivedDataPath /tmp/ss-ios-build test 2>&1 | tail -20
 ```
 Expected: FAIL — `cannot find 'APIClient' in scope`.
 
@@ -1007,9 +1024,9 @@ actor APIClient {
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -derivedDataPath build test 2>&1 | tail -20
+  -derivedDataPath /tmp/ss-ios-build test 2>&1 | tail -20
 ```
-Expected: `** TEST SUCCEEDED **`, 16 tests passing.
+Expected: `** TEST SUCCEEDED **`, 17 tests passing.
 
 - [ ] **Step 6: Commit**
 
@@ -1239,7 +1256,7 @@ struct SundayStrengthApp: App {
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -derivedDataPath build test 2>&1 | tail -20
+  -derivedDataPath /tmp/ss-ios-build test 2>&1 | tail -20
 ```
 Expected: `** TEST SUCCEEDED **`, still 16 tests.
 
@@ -1259,7 +1276,7 @@ Install and launch:
 xcrun simctl boot "iPhone 17" 2>/dev/null || true
 open -a Simulator
 xcrun simctl install booted \
-  ios/build/Build/Products/Debug-iphonesimulator/SundayStrength.app
+  /tmp/ss-ios-build/Build/Products/Debug-iphonesimulator/SundayStrength.app
 xcrun simctl launch booted com.sundaystrength.app
 ```
 
@@ -1436,7 +1453,7 @@ struct PlanView: View {
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -derivedDataPath build build 2>&1 | tail -20
+  -derivedDataPath /tmp/ss-ios-build build 2>&1 | tail -20
 ```
 Expected: `** BUILD SUCCEEDED **`
 
@@ -1444,7 +1461,7 @@ Expected: `** BUILD SUCCEEDED **`
 
 ```bash
 xcrun simctl install booted \
-  ios/build/Build/Products/Debug-iphonesimulator/SundayStrength.app
+  /tmp/ss-ios-build/Build/Products/Debug-iphonesimulator/SundayStrength.app
 xcrun simctl launch booted com.sundaystrength.app
 sleep 3
 xcrun simctl io booted screenshot /tmp/ss-task6-plan.png
@@ -1809,9 +1826,9 @@ final class AppModelTests: XCTestCase {
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -derivedDataPath build test 2>&1 | tail -20
+  -derivedDataPath /tmp/ss-ios-build test 2>&1 | tail -20
 ```
-Expected: `** TEST SUCCEEDED **`, 18 tests passing.
+Expected: `** TEST SUCCEEDED **`, 19 tests passing.
 
 - [ ] **Step 7: Log a set, then prove it reached the database**
 
@@ -1947,7 +1964,7 @@ final class OfflineQueueTests: XCTestCase {
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -derivedDataPath build test 2>&1 | tail -20
+  -derivedDataPath /tmp/ss-ios-build test 2>&1 | tail -20
 ```
 Expected: FAIL — `cannot find 'OfflineQueue' in scope`.
 
@@ -2010,9 +2027,9 @@ actor OfflineQueue {
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -derivedDataPath build test 2>&1 | tail -20
+  -derivedDataPath /tmp/ss-ios-build test 2>&1 | tail -20
 ```
-Expected: `** TEST SUCCEEDED **`, 25 tests passing.
+Expected: `** TEST SUCCEEDED **`, 26 tests passing.
 
 - [ ] **Step 5: Write `PlanCache.swift`**
 
@@ -2202,7 +2219,7 @@ scheme's run arguments.
 ```bash
 cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -derivedDataPath build test
+  -derivedDataPath /tmp/ss-ios-build test
 ```
 
 ## How sign-in works
@@ -2289,7 +2306,7 @@ git commit -m "Document how to run the iOS app"
 
 ## Done when
 
-- `xcodebuild test` passes — 25 tests.
+- `xcodebuild test` passes — 26 tests.
 - The app signs in, shows the week, logs a set, and survives a relaunch.
 - A tick made in the simulator is visible on the website's plan page.
 - A tick made with the server down reaches the database once it is back.
