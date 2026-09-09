@@ -8,8 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		0CE5A7705113F213AC06F463 /* SundayStrengthApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDAF3B959A8167A0009165A /* SundayStrengthApp.swift */; };
-		4C1859362481EA23B5959C6F /* PlaceholderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F31CAB504E7725D5156B3083 /* PlaceholderTests.swift */; };
+		136B60DCA8855CD315C44503 /* JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 259F8DF97FF07689B4BBE36B /* JSON.swift */; };
+		253232219639D59DF5507627 /* Plan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A993A9AADDCA4CB1146382F2 /* Plan.swift */; };
+		6DCB73254810798187AAE35F /* plan.json in Resources */ = {isa = PBXBuildFile; fileRef = 4C9F6F680B1E3FB768A9F170 /* plan.json */; };
+		8EEFE8EF018439E21B56AD67 /* me.json in Resources */ = {isa = PBXBuildFile; fileRef = BA64F5E44F05818270F3D724 /* me.json */; };
+		9F2DAB478EEB8B8909019BC9 /* Me.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7718A9A35D1E17CE1BB1860B /* Me.swift */; };
+		A1EBE804C7049EC2DEE4F8AF /* Completion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D73B7785C57418D544C629D /* Completion.swift */; };
 		AB8B4133469B98DA7CF2E3CE /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A92B63FD452803A43C72BB04 /* AppConfig.swift */; };
+		D9A9512F52B7371EA8EC8A3D /* ModelDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3484CF4296C9C695271EABB1 /* ModelDecodingTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -25,13 +31,28 @@
 /* Begin PBXFileReference section */
 		088368522F0F4B985DB38D19 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		0CDAF3B959A8167A0009165A /* SundayStrengthApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SundayStrengthApp.swift; sourceTree = "<group>"; };
+		0D73B7785C57418D544C629D /* Completion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Completion.swift; sourceTree = "<group>"; };
+		259F8DF97FF07689B4BBE36B /* JSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSON.swift; sourceTree = "<group>"; };
+		3484CF4296C9C695271EABB1 /* ModelDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelDecodingTests.swift; sourceTree = "<group>"; };
+		4C9F6F680B1E3FB768A9F170 /* plan.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = plan.json; sourceTree = "<group>"; };
+		7718A9A35D1E17CE1BB1860B /* Me.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Me.swift; sourceTree = "<group>"; };
 		A92B63FD452803A43C72BB04 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		A993A9AADDCA4CB1146382F2 /* Plan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Plan.swift; sourceTree = "<group>"; };
 		B883BBF8D1E20992AA73C1A8 /* SundayStrength.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SundayStrength.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BA64F5E44F05818270F3D724 /* me.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = me.json; sourceTree = "<group>"; };
 		BFE89D4ED687339B9C4A3639 /* SundayStrengthTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SundayStrengthTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		F31CAB504E7725D5156B3083 /* PlaceholderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		08F981EF7ED9BED18C8BDA6D /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				BA64F5E44F05818270F3D724 /* me.json */,
+				4C9F6F680B1E3FB768A9F170 /* plan.json */,
+			);
+			path = Fixtures;
+			sourceTree = "<group>";
+		};
 		1234A7F78C262BEBFDE34D9E /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -41,12 +62,24 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		2C02DF6ABF3F989158C7DC9F /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				0D73B7785C57418D544C629D /* Completion.swift */,
+				7718A9A35D1E17CE1BB1860B /* Me.swift */,
+				A993A9AADDCA4CB1146382F2 /* Plan.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
 		4CB92AE655B746FF0D60D31B /* SundayStrength */ = {
 			isa = PBXGroup;
 			children = (
 				A92B63FD452803A43C72BB04 /* AppConfig.swift */,
 				088368522F0F4B985DB38D19 /* Info.plist */,
 				0CDAF3B959A8167A0009165A /* SundayStrengthApp.swift */,
+				2C02DF6ABF3F989158C7DC9F /* Models */,
+				CDEAA7D8917536B985AA5663 /* Net */,
 			);
 			path = SundayStrength;
 			sourceTree = "<group>";
@@ -54,9 +87,18 @@
 		A48F0E9354536E6F1AA699ED /* Tests */ = {
 			isa = PBXGroup;
 			children = (
-				F31CAB504E7725D5156B3083 /* PlaceholderTests.swift */,
+				3484CF4296C9C695271EABB1 /* ModelDecodingTests.swift */,
+				08F981EF7ED9BED18C8BDA6D /* Fixtures */,
 			);
 			path = Tests;
+			sourceTree = "<group>";
+		};
+		CDEAA7D8917536B985AA5663 /* Net */ = {
+			isa = PBXGroup;
+			children = (
+				259F8DF97FF07689B4BBE36B /* JSON.swift */,
+			);
+			path = Net;
 			sourceTree = "<group>";
 		};
 		E860ADAD2E7F5B3868168B70 = {
@@ -93,6 +135,7 @@
 			buildConfigurationList = B32BDC781DBF4D0F28051EB8 /* Build configuration list for PBXNativeTarget "SundayStrengthTests" */;
 			buildPhases = (
 				5A6A4E642D5F5165B8A6D395 /* Sources */,
+				8373BF12C9A32D6B2C8A56C7 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -137,12 +180,24 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		8373BF12C9A32D6B2C8A56C7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8EEFE8EF018439E21B56AD67 /* me.json in Resources */,
+				6DCB73254810798187AAE35F /* plan.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		5A6A4E642D5F5165B8A6D395 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4C1859362481EA23B5959C6F /* PlaceholderTests.swift in Sources */,
+				D9A9512F52B7371EA8EC8A3D /* ModelDecodingTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -151,6 +206,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				AB8B4133469B98DA7CF2E3CE /* AppConfig.swift in Sources */,
+				A1EBE804C7049EC2DEE4F8AF /* Completion.swift in Sources */,
+				136B60DCA8855CD315C44503 /* JSON.swift in Sources */,
+				9F2DAB478EEB8B8909019BC9 /* Me.swift in Sources */,
+				253232219639D59DF5507627 /* Plan.swift in Sources */,
 				0CE5A7705113F213AC06F463 /* SundayStrengthApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

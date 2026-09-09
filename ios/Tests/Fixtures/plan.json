@@ -1,0 +1,471 @@
+{
+    "week": 37,
+    "days": [
+        {
+            "title": "Day 1 - Upper body 1",
+            "exercises": [
+                {
+                    "name": "Dumbbell chest press",
+                    "slug": "dumbbell-chest-press",
+                    "sets": "3 x 10-12",
+                    "equipment": "dumbbells",
+                    "alts": [
+                        {
+                            "name": "Push-up",
+                            "slug": "push-up"
+                        },
+                        {
+                            "name": "Machine chest press",
+                            "slug": "machine-chest-press"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "One-arm dumbbell row",
+                    "slug": "dumbbell-row",
+                    "sets": "3 x 10 each arm",
+                    "equipment": "dumbbells",
+                    "alts": [
+                        {
+                            "name": "Inverted row",
+                            "slug": "inverted-row"
+                        },
+                        {
+                            "name": "Seated cable row",
+                            "slug": "seated-cable-row"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Overhead press",
+                    "slug": "overhead-press",
+                    "sets": "3 x 8-10",
+                    "equipment": "full",
+                    "alts": [
+                        {
+                            "name": "Seated dumbbell shoulder press",
+                            "slug": "seated-dumbbell-shoulder-press"
+                        },
+                        {
+                            "name": "Machine shoulder press",
+                            "slug": "machine-shoulder-press"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Lat pulldown",
+                    "slug": "lat-pulldown",
+                    "sets": "3 x 10-12",
+                    "equipment": "full",
+                    "alts": [
+                        {
+                            "name": "Assisted pull-up machine",
+                            "slug": "assisted-pull-up"
+                        },
+                        {
+                            "name": "Weighted pull-up",
+                            "slug": "pull-up"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Barbell curl",
+                    "slug": "barbell-curl",
+                    "sets": "3 x 10",
+                    "equipment": "full",
+                    "alts": [
+                        {
+                            "name": "Dumbbell curl",
+                            "slug": "dumbbell-curl"
+                        },
+                        {
+                            "name": "Hammer curl",
+                            "slug": "hammer-curl"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Plank",
+                    "slug": "plank",
+                    "sets": "3 x 30-45 sec",
+                    "equipment": "bodyweight",
+                    "alts": [
+                        {
+                            "name": "Side plank",
+                            "slug": "side-plank"
+                        },
+                        {
+                            "name": "Dead bug",
+                            "slug": "dead-bug"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                }
+            ],
+            "day": 1
+        },
+        {
+            "title": "Day 2 - Lower body 1",
+            "exercises": [
+                {
+                    "name": "Bodyweight squat, 3 sec down",
+                    "slug": "box-squat",
+                    "sets": "3 x 15-20",
+                    "equipment": "bodyweight",
+                    "alts": [
+                        {
+                            "name": "Goblet squat",
+                            "slug": "goblet-squat"
+                        },
+                        {
+                            "name": "Leg press",
+                            "slug": "leg-press"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Romanian deadlift",
+                    "slug": "romanian-deadlift",
+                    "sets": "3 x 8-10",
+                    "equipment": "full",
+                    "alts": [
+                        {
+                            "name": "Dumbbell Romanian deadlift",
+                            "slug": "dumbbell-romanian-deadlift"
+                        },
+                        {
+                            "name": "Kettlebell swing",
+                            "slug": "kettlebell-swing"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Bulgarian split squat",
+                    "slug": "bulgarian-split-squat",
+                    "sets": "2 x 8-10 each leg",
+                    "equipment": "bodyweight",
+                    "alts": [
+                        {
+                            "name": "Walking lunge",
+                            "slug": "walking-lunge"
+                        },
+                        {
+                            "name": "Step-up",
+                            "slug": "step-up"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Standing calf raise",
+                    "slug": "standing-calf-raise",
+                    "sets": "3 x 12-15",
+                    "equipment": "bodyweight",
+                    "alts": [
+                        {
+                            "name": "Seated calf raise",
+                            "slug": "seated-calf-raise"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Dead bug",
+                    "slug": "dead-bug",
+                    "sets": "3 x 8 each side",
+                    "equipment": "bodyweight",
+                    "alts": [
+                        {
+                            "name": "Plank",
+                            "slug": "plank"
+                        },
+                        {
+                            "name": "Crunch",
+                            "slug": "crunch"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                }
+            ],
+            "day": 2
+        },
+        {
+            "title": "Day 3 - Upper body 2",
+            "exercises": [
+                {
+                    "name": "Pike push-up",
+                    "slug": "pike-push-up",
+                    "sets": "3 x 8-12",
+                    "equipment": "bodyweight",
+                    "alts": [
+                        {
+                            "name": "Seated dumbbell shoulder press",
+                            "slug": "seated-dumbbell-shoulder-press"
+                        },
+                        {
+                            "name": "Overhead press",
+                            "slug": "overhead-press"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Inverted row",
+                    "slug": "inverted-row",
+                    "sets": "3 x 10-12",
+                    "equipment": "bodyweight",
+                    "alts": [
+                        {
+                            "name": "One-arm dumbbell row",
+                            "slug": "dumbbell-row"
+                        },
+                        {
+                            "name": "Seated cable row",
+                            "slug": "seated-cable-row"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Push-up",
+                    "slug": "push-up",
+                    "sets": "3 x max, leave 2 in the tank",
+                    "equipment": "bodyweight",
+                    "alts": [
+                        {
+                            "name": "Dumbbell chest press",
+                            "slug": "dumbbell-chest-press"
+                        },
+                        {
+                            "name": "Machine chest press",
+                            "slug": "machine-chest-press"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Seated machine row",
+                    "slug": "seated-machine-row",
+                    "sets": "3 x 10-12",
+                    "equipment": "full",
+                    "alts": [
+                        {
+                            "name": "Seated cable row",
+                            "slug": "seated-cable-row"
+                        },
+                        {
+                            "name": "One-arm dumbbell row",
+                            "slug": "dumbbell-row"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Overhead cable tricep extension",
+                    "slug": "overhead-tricep-extension",
+                    "sets": "3 x 12",
+                    "equipment": "full",
+                    "alts": [
+                        {
+                            "name": "Tricep pushdown",
+                            "slug": "tricep-pushdown"
+                        },
+                        {
+                            "name": "Lying tricep extension",
+                            "slug": "lying-tricep-extension"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Side plank",
+                    "slug": "side-plank",
+                    "sets": "3 x 20-30 sec each side",
+                    "equipment": "bodyweight",
+                    "alts": [
+                        {
+                            "name": "Plank",
+                            "slug": "plank"
+                        },
+                        {
+                            "name": "Pallof press",
+                            "slug": "pallof-press"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                }
+            ],
+            "day": 3
+        },
+        {
+            "title": "Day 4 - Lower body 2",
+            "exercises": [
+                {
+                    "name": "Bodyweight squat, 3 sec down",
+                    "slug": "box-squat",
+                    "sets": "3 x 15-20",
+                    "equipment": "bodyweight",
+                    "alts": [
+                        {
+                            "name": "Goblet squat",
+                            "slug": "goblet-squat"
+                        },
+                        {
+                            "name": "Leg press",
+                            "slug": "leg-press"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Single-leg glute bridge",
+                    "slug": "hip-thrust",
+                    "sets": "3 x 12 each side",
+                    "equipment": "bodyweight",
+                    "alts": [
+                        {
+                            "name": "Kettlebell swing",
+                            "slug": "kettlebell-swing"
+                        },
+                        {
+                            "name": "Dumbbell Romanian deadlift",
+                            "slug": "dumbbell-romanian-deadlift"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Bulgarian split squat",
+                    "slug": "bulgarian-split-squat",
+                    "sets": "2 x 8-10 each leg",
+                    "equipment": "bodyweight",
+                    "alts": [
+                        {
+                            "name": "Walking lunge",
+                            "slug": "walking-lunge"
+                        },
+                        {
+                            "name": "Step-up",
+                            "slug": "step-up"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Seated calf raise",
+                    "slug": "seated-calf-raise",
+                    "sets": "3 x 15",
+                    "equipment": "full",
+                    "alts": [
+                        {
+                            "name": "Standing calf raise",
+                            "slug": "standing-calf-raise"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                },
+                {
+                    "name": "Russian twist",
+                    "slug": "russian-twist",
+                    "sets": "3 x 10 each side",
+                    "equipment": "bodyweight",
+                    "alts": [
+                        {
+                            "name": "Side plank",
+                            "slug": "side-plank"
+                        },
+                        {
+                            "name": "Pallof press",
+                            "slug": "pallof-press"
+                        }
+                    ],
+                    "done": false,
+                    "sets_done": null,
+                    "weight_kg": null,
+                    "reps": null
+                }
+            ],
+            "day": 4
+        }
+    ],
+    "equipment": "full",
+    "run": "Intervals - 10 min easy, then 6 x (2 min brisk / 2 min easy), 5 min easy to finish.",
+    "notes": [
+        "Spread the days out (e.g. Mon / Wed / Fri, run at the weekend).",
+        "Warm up: 5 min brisk walk/row + 1 light set of the first exercise.",
+        "Pick a load where the last 2 reps feel hard but doable. Rest 60-90 sec.",
+        "Short on time? Do the first three exercises and leave - that's still a session.",
+        "Machine taken? Every exercise lists a swap - use it and carry on."
+    ],
+    "week_key": "2026-W37"
+}

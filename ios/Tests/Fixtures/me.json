@@ -1,0 +1,8 @@
+{
+    "email": "ios-test@example.com",
+    "status": "active",
+    "days_per_week": 4,
+    "experience": "intermediate",
+    "equipment": "full",
+    "include_run": true
+}
