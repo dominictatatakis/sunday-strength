@@ -2,10 +2,13 @@ import SwiftUI
 
 @main
 struct SundayStrengthApp: App {
+    @State private var model = AppModel()
+
     var body: some Scene {
         WindowGroup {
-            Text("Sunday Strength")
-                .font(.largeTitle.weight(.semibold))
+            RootView()
+                .environment(model)
+                .task { await model.restore() }
         }
     }
 }

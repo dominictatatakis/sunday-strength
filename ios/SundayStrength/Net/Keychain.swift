@@ -23,9 +23,13 @@ enum Keychain {
             kSecAttrService as String: service,
             kSecAttrAccount as String: credentials.email,
             kSecValueData as String: Data(credentials.password.utf8),
-            // Readable while locked, so a background refresh works — but only
-            // after the phone has been unlocked once since boot.
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
+            // Readable while locked (after one unlock since boot) so a
+            // background refresh works. ThisDeviceOnly keeps the password out
+            // of iCloud and iTunes backups: it is re-derivable by signing in
+            // again, so there is nothing to gain by letting it be restored
+            // onto another device.
+            kSecAttrAccessible as String:
+                kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
         ]
         return SecItemAdd(attributes as CFDictionary, nil)
     }

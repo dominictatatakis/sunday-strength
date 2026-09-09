@@ -10,21 +10,33 @@
 		0CE5A7705113F213AC06F463 /* SundayStrengthApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDAF3B959A8167A0009165A /* SundayStrengthApp.swift */; };
 		136B60DCA8855CD315C44503 /* JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 259F8DF97FF07689B4BBE36B /* JSON.swift */; };
 		253232219639D59DF5507627 /* Plan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A993A9AADDCA4CB1146382F2 /* Plan.swift */; };
+		4003808F7CF3B5D8D1C78477 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA7A7CB445766F537D042521 /* LoginView.swift */; };
 		65F3BFBB58074402F6B22899 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16ACB5981A5DCAA8D88D86F7 /* APIClient.swift */; };
 		6DCB73254810798187AAE35F /* plan.json in Resources */ = {isa = PBXBuildFile; fileRef = 4C9F6F680B1E3FB768A9F170 /* plan.json */; };
 		84DA5BC373E1BF97EA84B620 /* APIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3AE8794C049E9F93177F44C /* APIClientTests.swift */; };
 		8EEFE8EF018439E21B56AD67 /* me.json in Resources */ = {isa = PBXBuildFile; fileRef = BA64F5E44F05818270F3D724 /* me.json */; };
 		971F31C11AC2A46235CFE9BA /* KeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 623FEC31250FEE5702FD7881 /* KeychainTests.swift */; };
+		9DE5C3BA1B59837463FE95F4 /* PlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 968BFA36573BBB7B56205E69 /* PlanView.swift */; };
 		9F2DAB478EEB8B8909019BC9 /* Me.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7718A9A35D1E17CE1BB1860B /* Me.swift */; };
 		A1EBE804C7049EC2DEE4F8AF /* Completion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D73B7785C57418D544C629D /* Completion.swift */; };
 		AB8B4133469B98DA7CF2E3CE /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A92B63FD452803A43C72BB04 /* AppConfig.swift */; };
+		B69738D8E03F9FE746AAF334 /* SignInUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2948834A97B2C8CE871EFA45 /* SignInUITests.swift */; };
 		CFAC8B82E1A322B15CA67010 /* StubProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724FFF1836763611C2B9DB90 /* StubProtocol.swift */; };
+		D1EA04C473951DCB2DE66D5A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8744E7DE5249C4C013FD47 /* RootView.swift */; };
 		D9A9512F52B7371EA8EC8A3D /* ModelDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3484CF4296C9C695271EABB1 /* ModelDecodingTests.swift */; };
+		DC3A5DED9F11A76BA1A6B401 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52970BF6851ADF2381ACCD1E /* AppModel.swift */; };
 		EB7D0337F3557A5ED0C8A101 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB6627A558A1480D58839F3 /* Keychain.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		6480C90AAC094947D24C8763 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3B65578F05ED421BAB41C80D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 675D8A52E80321B3FB9F1977;
+			remoteInfo = SundayStrength;
+		};
+		98D08523FFD53102D9EED0F5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 3B65578F05ED421BAB41C80D /* Project object */;
 			proxyType = 1;
@@ -40,15 +52,21 @@
 		16ACB5981A5DCAA8D88D86F7 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		1EB6627A558A1480D58839F3 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
 		259F8DF97FF07689B4BBE36B /* JSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSON.swift; sourceTree = "<group>"; };
+		2948834A97B2C8CE871EFA45 /* SignInUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInUITests.swift; sourceTree = "<group>"; };
 		3484CF4296C9C695271EABB1 /* ModelDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelDecodingTests.swift; sourceTree = "<group>"; };
 		4C9F6F680B1E3FB768A9F170 /* plan.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = plan.json; sourceTree = "<group>"; };
+		52970BF6851ADF2381ACCD1E /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		623FEC31250FEE5702FD7881 /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
 		724FFF1836763611C2B9DB90 /* StubProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StubProtocol.swift; sourceTree = "<group>"; };
 		7718A9A35D1E17CE1BB1860B /* Me.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Me.swift; sourceTree = "<group>"; };
+		7B8744E7DE5249C4C013FD47 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		968BFA36573BBB7B56205E69 /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
 		A92B63FD452803A43C72BB04 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		A993A9AADDCA4CB1146382F2 /* Plan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Plan.swift; sourceTree = "<group>"; };
+		B5307D02B6BCD0AD904EDFAC /* SundayStrengthUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SundayStrengthUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B883BBF8D1E20992AA73C1A8 /* SundayStrength.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SundayStrength.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA64F5E44F05818270F3D724 /* me.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = me.json; sourceTree = "<group>"; };
+		BA7A7CB445766F537D042521 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		BFE89D4ED687339B9C4A3639 /* SundayStrengthTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SundayStrengthTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3AE8794C049E9F93177F44C /* APIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -68,6 +86,7 @@
 			children = (
 				B883BBF8D1E20992AA73C1A8 /* SundayStrength.app */,
 				BFE89D4ED687339B9C4A3639 /* SundayStrengthTests.xctest */,
+				B5307D02B6BCD0AD904EDFAC /* SundayStrengthUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -86,10 +105,12 @@
 			isa = PBXGroup;
 			children = (
 				A92B63FD452803A43C72BB04 /* AppConfig.swift */,
+				52970BF6851ADF2381ACCD1E /* AppModel.swift */,
 				088368522F0F4B985DB38D19 /* Info.plist */,
 				0CDAF3B959A8167A0009165A /* SundayStrengthApp.swift */,
 				2C02DF6ABF3F989158C7DC9F /* Models */,
 				CDEAA7D8917536B985AA5663 /* Net */,
+				BE2F590D564702BA3799E8CC /* Views */,
 			);
 			path = SundayStrength;
 			sourceTree = "<group>";
@@ -106,6 +127,16 @@
 			path = Tests;
 			sourceTree = "<group>";
 		};
+		BE2F590D564702BA3799E8CC /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				BA7A7CB445766F537D042521 /* LoginView.swift */,
+				968BFA36573BBB7B56205E69 /* PlanView.swift */,
+				7B8744E7DE5249C4C013FD47 /* RootView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
 		CDEAA7D8917536B985AA5663 /* Net */ = {
 			isa = PBXGroup;
 			children = (
@@ -116,11 +147,20 @@
 			path = Net;
 			sourceTree = "<group>";
 		};
+		D245EEFC48A5DCC0767081FD /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				2948834A97B2C8CE871EFA45 /* SignInUITests.swift */,
+			);
+			path = UITests;
+			sourceTree = "<group>";
+		};
 		E860ADAD2E7F5B3868168B70 = {
 			isa = PBXGroup;
 			children = (
 				4CB92AE655B746FF0D60D31B /* SundayStrength */,
 				A48F0E9354536E6F1AA699ED /* Tests */,
+				D245EEFC48A5DCC0767081FD /* UITests */,
 				1234A7F78C262BEBFDE34D9E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -164,6 +204,24 @@
 			productReference = BFE89D4ED687339B9C4A3639 /* SundayStrengthTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		AB262E4EA90ED5B7F7E7F8DC /* SundayStrengthUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9AECEFEF1391D3086172B5E8 /* Build configuration list for PBXNativeTarget "SundayStrengthUITests" */;
+			buildPhases = (
+				1E7E5519AA75423DEBE1831A /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				732DBEE4FE8BD3714EBC6CF4 /* PBXTargetDependency */,
+			);
+			name = SundayStrengthUITests;
+			packageProductDependencies = (
+			);
+			productName = SundayStrengthUITests;
+			productReference = B5307D02B6BCD0AD904EDFAC /* SundayStrengthUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -173,6 +231,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					AB262E4EA90ED5B7F7E7F8DC = {
+						TestTargetID = 675D8A52E80321B3FB9F1977;
+					};
 				};
 			};
 			buildConfigurationList = C4B4B77A02B31C1DC0FB64A8 /* Build configuration list for PBXProject "SundayStrength" */;
@@ -191,6 +252,7 @@
 			targets = (
 				675D8A52E80321B3FB9F1977 /* SundayStrength */,
 				740360B13220D4A1D5782A30 /* SundayStrengthTests */,
+				AB262E4EA90ED5B7F7E7F8DC /* SundayStrengthUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -208,6 +270,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		1E7E5519AA75423DEBE1831A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B69738D8E03F9FE746AAF334 /* SignInUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5A6A4E642D5F5165B8A6D395 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -225,11 +295,15 @@
 			files = (
 				65F3BFBB58074402F6B22899 /* APIClient.swift in Sources */,
 				AB8B4133469B98DA7CF2E3CE /* AppConfig.swift in Sources */,
+				DC3A5DED9F11A76BA1A6B401 /* AppModel.swift in Sources */,
 				A1EBE804C7049EC2DEE4F8AF /* Completion.swift in Sources */,
 				136B60DCA8855CD315C44503 /* JSON.swift in Sources */,
 				EB7D0337F3557A5ED0C8A101 /* Keychain.swift in Sources */,
+				4003808F7CF3B5D8D1C78477 /* LoginView.swift in Sources */,
 				9F2DAB478EEB8B8909019BC9 /* Me.swift in Sources */,
 				253232219639D59DF5507627 /* Plan.swift in Sources */,
+				9DE5C3BA1B59837463FE95F4 /* PlanView.swift in Sources */,
+				D1EA04C473951DCB2DE66D5A /* RootView.swift in Sources */,
 				0CE5A7705113F213AC06F463 /* SundayStrengthApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -242,9 +316,31 @@
 			target = 675D8A52E80321B3FB9F1977 /* SundayStrength */;
 			targetProxy = 6480C90AAC094947D24C8763 /* PBXContainerItemProxy */;
 		};
+		732DBEE4FE8BD3714EBC6CF4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 675D8A52E80321B3FB9F1977 /* SundayStrength */;
+			targetProxy = 98D08523FFD53102D9EED0F5 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		0645BD595FDA77EE1915958C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.sundaystrength.SundayStrengthUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = SundayStrength;
+			};
+			name = Debug;
+		};
 		1CE17B3D85E607C13533D2AD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -317,6 +413,23 @@
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		324C50BFCC8806F005709349 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.sundaystrength.SundayStrengthUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = SundayStrength;
 			};
 			name = Release;
 		};
@@ -444,6 +557,15 @@
 			buildConfigurations = (
 				F34C07AB8FA3C050538BAF35 /* Debug */,
 				1CE17B3D85E607C13533D2AD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		9AECEFEF1391D3086172B5E8 /* Build configuration list for PBXNativeTarget "SundayStrengthUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0645BD595FDA77EE1915958C /* Debug */,
+				324C50BFCC8806F005709349 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

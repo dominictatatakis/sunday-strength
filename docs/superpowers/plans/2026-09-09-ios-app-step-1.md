@@ -603,9 +603,11 @@ enum Keychain {
             kSecAttrService as String: service,
             kSecAttrAccount as String: credentials.email,
             kSecValueData as String: Data(credentials.password.utf8),
-            // Readable while locked, so a background refresh works — but only
-            // after the phone has been unlocked once since boot.
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
+            // Readable while locked (after one unlock since boot) so a
+            // background refresh works. ThisDeviceOnly keeps the password out
+            // of iCloud and iTunes backups.
+            kSecAttrAccessible as String:
+                kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
         ]
         SecItemAdd(attributes as CFDictionary, nil)
     }
@@ -1260,48 +1262,48 @@ cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
 ```
 Expected: `** TEST SUCCEEDED **`, still 16 tests.
 
-- [ ] **Step 6: Drive the real login flow**
+- [ ] **Step 6: Drive the real login flow with a UI test**
 
-Start the throwaway server (the test account from Task 2 persists in
-`/tmp/ios-test.db`; recreate it with the Task 2 curl if that file is gone):
+Manual driving is not reproducible and cannot be re-run later, so the flow is
+covered by an XCUITest target instead. Add to `project.yml`:
+
+```yaml
+  SundayStrengthUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: SundayStrength
+    settings:
+      base:
+        TEST_TARGET_NAME: SundayStrength
+        GENERATE_INFOPLIST_FILE: "YES"
+```
+
+`ios/UITests/SignInUITests.swift` covers three things: signing in reaches the
+plan, a wrong password does not, and a relaunch does not ask for the password
+again. It skips itself when no server is on :8123, so `xcodebuild test` stays
+green on a machine without one.
+
+The login screen focuses the email field on appear and submits on return —
+needed for keyboard-driven entry, and better for a human too.
+
+- [ ] **Step 7: Run it against a real server**
 
 ```bash
 DB_PATH=/tmp/ios-test.db BREVO_API_KEY= RESEND_API_KEY= GMAIL_USER= \
   STRIPE_SECRET_KEY= .venv/bin/uvicorn app:app --port 8123 &
 sleep 2
+cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  -derivedDataPath /tmp/ss-ios-build test 2>&1 | tail -20
 ```
+Expected: `** TEST SUCCEEDED **`, 17 unit tests and 3 UI tests.
 
-Install and launch:
-```bash
-xcrun simctl boot "iPhone 17" 2>/dev/null || true
-open -a Simulator
-xcrun simctl install booted \
-  /tmp/ss-ios-build/Build/Products/Debug-iphonesimulator/SundayStrength.app
-xcrun simctl launch booted com.sundaystrength.app
-```
-
-Then in the simulator: type `ios-test@example.com` / `testpass123`, tap
-**Sign in**, and confirm it lands on "Signed in as ios-test@example.com" with
-"4 days this week".
-
-```bash
-xcrun simctl io booted screenshot /tmp/ss-task5-signedin.png
-```
-
-Also confirm a **bad** password shows the error rather than signing in — this
-is the branch that distinguishes the two 303s, and it is the easiest thing in
-this plan to get silently wrong.
-
-- [ ] **Step 7: Confirm the session survives a relaunch**
-
-```bash
-xcrun simctl terminate booted com.sundaystrength.app
-xcrun simctl launch booted com.sundaystrength.app
-sleep 3
-xcrun simctl io booted screenshot /tmp/ss-task5-restored.png
-```
-Expected: it opens straight to the signed-in screen, no login prompt. That
-proves the Keychain round-trip and `restore()` work together.
+Confirm the silent re-login really happened by looking at the server log: a
+relaunch should show `POST /login` → `GET /api/v1/me` → `GET /api/v1/plan`
+with nobody typing anything.
 
 - [ ] **Step 8: Commit**
 

@@ -38,8 +38,9 @@ and the no-JS form use.
 
 `SESSION_MAX_AGE` is 30 days (`app.py:33`). A gym app that logs you out monthly
 mid-session is a bad gym app, so credentials go into the Keychain
-(`kSecAttrAccessibleAfterFirstUnlock`, so a background refresh works while the
-phone is locked, provided it has been unlocked once since boot) and the client
+(`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, so a background refresh
+works while the phone is locked provided it has been unlocked once since boot,
+and the password stays out of device backups) and the client
 re-authenticates silently on the first 401, retrying the original request once.
 A silent login that is *rejected* means the password genuinely changed, so the
 Keychain is cleared and the login screen shown. A silent login that merely

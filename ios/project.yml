@@ -50,3 +50,14 @@ targets:
         BUNDLE_LOADER: "$(TEST_HOST)"
         # Signing the bundle requires one; the app target supplies its own.
         GENERATE_INFOPLIST_FILE: "YES"
+  SundayStrengthUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: SundayStrength
+    settings:
+      base:
+        TEST_TARGET_NAME: SundayStrength
+        GENERATE_INFOPLIST_FILE: "YES"
