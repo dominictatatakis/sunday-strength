@@ -11,19 +11,23 @@
 		0CE5A7705113F213AC06F463 /* SundayStrengthApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDAF3B959A8167A0009165A /* SundayStrengthApp.swift */; };
 		136B60DCA8855CD315C44503 /* JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 259F8DF97FF07689B4BBE36B /* JSON.swift */; };
 		253232219639D59DF5507627 /* Plan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A993A9AADDCA4CB1146382F2 /* Plan.swift */; };
+		2D96FFDF4CA21D0E291A8108 /* OfflineQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACDBF7B351CECB831518498A /* OfflineQueueTests.swift */; };
 		4003808F7CF3B5D8D1C78477 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA7A7CB445766F537D042521 /* LoginView.swift */; };
 		448F07FD1D0B0BF811C7A776 /* DayCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB99F9BD3A61696E73D52D3B /* DayCard.swift */; };
 		599FB898BE117EAEB9E0C770 /* LogSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00C7C2E8E0C6DECDF3046EE /* LogSheet.swift */; };
 		65F3BFBB58074402F6B22899 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16ACB5981A5DCAA8D88D86F7 /* APIClient.swift */; };
 		6DCB73254810798187AAE35F /* plan.json in Resources */ = {isa = PBXBuildFile; fileRef = 4C9F6F680B1E3FB768A9F170 /* plan.json */; };
+		6E31F136A0511D00EF0AF28E /* PlanCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = A12DC4969948614E5FF54164 /* PlanCache.swift */; };
 		8029C4F2D2F0D306FCCFF596 /* AppUITestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E53F4B70A857796458AB037 /* AppUITestCase.swift */; };
 		84DA5BC373E1BF97EA84B620 /* APIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3AE8794C049E9F93177F44C /* APIClientTests.swift */; };
+		8A8D1899BAEC43E1E167BD3C /* OfflineUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0C94C59E9774492EC0D0D81 /* OfflineUITests.swift */; };
 		8EEFE8EF018439E21B56AD67 /* me.json in Resources */ = {isa = PBXBuildFile; fileRef = BA64F5E44F05818270F3D724 /* me.json */; };
 		971F31C11AC2A46235CFE9BA /* KeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 623FEC31250FEE5702FD7881 /* KeychainTests.swift */; };
 		9DE5C3BA1B59837463FE95F4 /* PlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 968BFA36573BBB7B56205E69 /* PlanView.swift */; };
 		9F2DAB478EEB8B8909019BC9 /* Me.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7718A9A35D1E17CE1BB1860B /* Me.swift */; };
 		A1EBE804C7049EC2DEE4F8AF /* Completion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D73B7785C57418D544C629D /* Completion.swift */; };
 		AB8B4133469B98DA7CF2E3CE /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A92B63FD452803A43C72BB04 /* AppConfig.swift */; };
+		ABFDEDC04BFD153B507E9890 /* OfflineQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8198FCA81FEF215954A00788 /* OfflineQueue.swift */; };
 		B67CFD68CCA8237D72787F2C /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 569CB00C577E380E88326ECA /* AppModelTests.swift */; };
 		B69738D8E03F9FE746AAF334 /* SignInUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2948834A97B2C8CE871EFA45 /* SignInUITests.swift */; };
 		CF6F683C970FDEC97C49E9C5 /* LoggingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29AFAE192B8D1387978AA1AE /* LoggingUITests.swift */; };
@@ -68,11 +72,14 @@
 		724FFF1836763611C2B9DB90 /* StubProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StubProtocol.swift; sourceTree = "<group>"; };
 		7718A9A35D1E17CE1BB1860B /* Me.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Me.swift; sourceTree = "<group>"; };
 		7B8744E7DE5249C4C013FD47 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		8198FCA81FEF215954A00788 /* OfflineQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineQueue.swift; sourceTree = "<group>"; };
 		968BFA36573BBB7B56205E69 /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
 		9E53F4B70A857796458AB037 /* AppUITestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUITestCase.swift; sourceTree = "<group>"; };
+		A12DC4969948614E5FF54164 /* PlanCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanCache.swift; sourceTree = "<group>"; };
 		A92B63FD452803A43C72BB04 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		A993A9AADDCA4CB1146382F2 /* Plan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Plan.swift; sourceTree = "<group>"; };
 		AB99F9BD3A61696E73D52D3B /* DayCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayCard.swift; sourceTree = "<group>"; };
+		ACDBF7B351CECB831518498A /* OfflineQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineQueueTests.swift; sourceTree = "<group>"; };
 		B5307D02B6BCD0AD904EDFAC /* SundayStrengthUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SundayStrengthUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B883BBF8D1E20992AA73C1A8 /* SundayStrength.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SundayStrength.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA64F5E44F05818270F3D724 /* me.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = me.json; sourceTree = "<group>"; };
@@ -81,6 +88,7 @@
 		C3AE8794C049E9F93177F44C /* APIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientTests.swift; sourceTree = "<group>"; };
 		DF921D75CAF0587340D67AD3 /* ExerciseRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseRow.swift; sourceTree = "<group>"; };
 		E00C7C2E8E0C6DECDF3046EE /* LogSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogSheet.swift; sourceTree = "<group>"; };
+		F0C94C59E9774492EC0D0D81 /* OfflineUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineUITests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -134,6 +142,7 @@
 				569CB00C577E380E88326ECA /* AppModelTests.swift */,
 				623FEC31250FEE5702FD7881 /* KeychainTests.swift */,
 				3484CF4296C9C695271EABB1 /* ModelDecodingTests.swift */,
+				ACDBF7B351CECB831518498A /* OfflineQueueTests.swift */,
 				724FFF1836763611C2B9DB90 /* StubProtocol.swift */,
 				08F981EF7ED9BED18C8BDA6D /* Fixtures */,
 			);
@@ -159,6 +168,8 @@
 				16ACB5981A5DCAA8D88D86F7 /* APIClient.swift */,
 				259F8DF97FF07689B4BBE36B /* JSON.swift */,
 				1EB6627A558A1480D58839F3 /* Keychain.swift */,
+				8198FCA81FEF215954A00788 /* OfflineQueue.swift */,
+				A12DC4969948614E5FF54164 /* PlanCache.swift */,
 			);
 			path = Net;
 			sourceTree = "<group>";
@@ -168,6 +179,7 @@
 			children = (
 				9E53F4B70A857796458AB037 /* AppUITestCase.swift */,
 				29AFAE192B8D1387978AA1AE /* LoggingUITests.swift */,
+				F0C94C59E9774492EC0D0D81 /* OfflineUITests.swift */,
 				2948834A97B2C8CE871EFA45 /* SignInUITests.swift */,
 			);
 			path = UITests;
@@ -294,6 +306,7 @@
 			files = (
 				8029C4F2D2F0D306FCCFF596 /* AppUITestCase.swift in Sources */,
 				CF6F683C970FDEC97C49E9C5 /* LoggingUITests.swift in Sources */,
+				8A8D1899BAEC43E1E167BD3C /* OfflineUITests.swift in Sources */,
 				B69738D8E03F9FE746AAF334 /* SignInUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -306,6 +319,7 @@
 				B67CFD68CCA8237D72787F2C /* AppModelTests.swift in Sources */,
 				971F31C11AC2A46235CFE9BA /* KeychainTests.swift in Sources */,
 				D9A9512F52B7371EA8EC8A3D /* ModelDecodingTests.swift in Sources */,
+				2D96FFDF4CA21D0E291A8108 /* OfflineQueueTests.swift in Sources */,
 				CFAC8B82E1A322B15CA67010 /* StubProtocol.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -325,7 +339,9 @@
 				599FB898BE117EAEB9E0C770 /* LogSheet.swift in Sources */,
 				4003808F7CF3B5D8D1C78477 /* LoginView.swift in Sources */,
 				9F2DAB478EEB8B8909019BC9 /* Me.swift in Sources */,
+				ABFDEDC04BFD153B507E9890 /* OfflineQueue.swift in Sources */,
 				253232219639D59DF5507627 /* Plan.swift in Sources */,
+				6E31F136A0511D00EF0AF28E /* PlanCache.swift in Sources */,
 				9DE5C3BA1B59837463FE95F4 /* PlanView.swift in Sources */,
 				D1EA04C473951DCB2DE66D5A /* RootView.swift in Sources */,
 				0CE5A7705113F213AC06F463 /* SundayStrengthApp.swift in Sources */,

@@ -17,9 +17,11 @@ final class AppModel {
     var errorMessage: String?
 
     private let api: APIClient
+    private let queue: OfflineQueue
 
-    init(api: APIClient = APIClient()) {
+    init(api: APIClient = APIClient(), queue: OfflineQueue = OfflineQueue()) {
         self.api = api
+        self.queue = queue
     }
 
     /// Called on launch: sign in again from stored credentials, so the app
@@ -113,7 +115,8 @@ final class AppModel {
         } catch APIError.notAuthorised {
             await restore()
         } catch {
-            // Network failure: keep the optimistic state.
+            // Network failure: keep the optimistic state and replay later.
+            await queue.enqueue(body)
             isOffline = true
         }
     }
@@ -145,12 +148,31 @@ final class AppModel {
 
     func loadPlan() async {
         do {
-            plan = try await api.plan(week: nil)
+            let fetched = try await api.plan(week: nil)
+            plan = fetched
+            PlanCache.save(fetched)
             isOffline = false
+            await flushQueue()
         } catch APIError.notAuthorised {
             await restore()
         } catch {
+            if plan == nil { plan = PlanCache.load() }
             isOffline = true
+        }
+    }
+
+    /// Replay queued ticks. A 400 means the server will never accept this one,
+    /// so drop it — otherwise it retries forever.
+    func flushQueue() async {
+        for entry in await queue.pending() {
+            do {
+                try await api.setCompletion(entry)
+                await queue.remove(entry)
+            } catch APIError.rejected {
+                await queue.remove(entry)
+            } catch {
+                break          // still offline; keep the rest for next time
+            }
         }
     }
 }
