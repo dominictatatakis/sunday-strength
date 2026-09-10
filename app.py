@@ -565,6 +565,14 @@ def exercise_page(request: Request, slug: str):
 # if ticking a box works, the API works. The session cookie is samesite=lax
 # and these take a JSON body, so a cross-site form can't drive them.
 
+class PrefsIn(BaseModel):
+    """Every field optional: absent means "leave this one alone"."""
+    days_per_week: int | None = None
+    experience: str | None = None
+    equipment: str | None = None
+    include_run: bool | None = None
+
+
 class CompletionIn(BaseModel):
     slug: str
     day: int                                # 1-based day within the week
@@ -599,14 +607,59 @@ def _week_from_key(key: str) -> tuple[int, int]:
         raise HTTPException(400, "week must look like '2026-W30'.")
 
 
-@app.get("/api/v1/me")
-def api_me(request: Request):
-    _conn, sub = _require_sub(request)
+def _me_payload(sub) -> dict:
+    """Preferences plus what they are allowed to be.
+
+    The options travel with the profile so a client doesn't hard-code the
+    splits and levels and quietly drift from `engine` when one is added.
+    """
     return {"email": sub["email"], "status": sub["status"],
             "days_per_week": sub["days_per_week"],
             "experience": sub["experience"],
             "equipment": db.sub_equipment(sub),
-            "include_run": bool(sub["include_run"])}
+            "include_run": bool(sub["include_run"]),
+            "options": {
+                "days_per_week": sorted(engine.SPLITS),
+                "experience": list(engine.LEVELS),
+                "equipment": [{"value": tier,
+                               "name": engine.EQUIPMENT_NAMES[tier]}
+                              for tier in engine.EQUIPMENT],
+            }}
+
+
+@app.get("/api/v1/me")
+def api_me(request: Request):
+    _conn, sub = _require_sub(request)
+    return _me_payload(sub)
+
+
+@app.patch("/api/v1/me")
+def api_update_me(request: Request, body: PrefsIn):
+    """Change preferences, with the same rules as `POST /account`.
+
+    Only the fields actually sent are touched. A client holds the profile it
+    fetched at launch, so replacing all four on save would silently revert
+    anything changed on the website in between.
+
+    Changing days or equipment regenerates the week, exactly as the account
+    form does — sets already logged against exercises that are no longer in
+    the plan stop being shown.
+    """
+    conn, sub = _require_sub(request)
+    days = (body.days_per_week if body.days_per_week is not None
+            else sub["days_per_week"])
+    experience = body.experience or sub["experience"]
+    equipment = body.equipment or db.sub_equipment(sub)
+    include_run = (body.include_run if body.include_run is not None
+                   else bool(sub["include_run"]))
+
+    if (days not in engine.SPLITS or experience not in engine.LEVELS
+            or equipment not in engine.EQUIPMENT_RANK):
+        raise HTTPException(400, "Invalid preferences.")
+
+    db.update_prefs(conn, sub["email"], days, experience, include_run,
+                    equipment)
+    return _me_payload(db.get_by_email(conn, sub["email"]))
 
 
 @app.get("/api/v1/plan")
