@@ -198,20 +198,36 @@ key is stored — issuing a new one immediately revokes the old, and the key
 itself is shown exactly once.
 
 **Don't hand another app the Supabase `DATABASE_URL`.** The app connects as the
-owner role with no row-level security, so that's unscoped, unrevokable
+owner role, which bypasses row-level security, so that's unscoped, unrevokable
 read/write over every subscriber. An API key is per-subscriber and rotatable.
+
+**The Supabase Data API is deliberately shut.** Supabase publishes every table
+in the `public` schema through PostgREST and grants `anon` full read/write by
+default — meaning anyone holding the anon key (public by design) could read and
+delete the subscriber table. Nothing here uses that API, so every table has RLS
+enabled with no policies, the `anon`/`authenticated` grants are revoked, and
+the schema's default privileges are revoked so new tables start locked. A
+migration in `db.py` re-applies this on every boot; keep it. Supabase's
+security advisor should report only `rls_enabled_no_policy` at INFO — that is
+the intended end state here, not something to "fix" by adding policies.
 
 ## iOS app
 
-`ios/` holds a native SwiftUI client for iPhone — this week's plan and set
-logging, against the same account and the same API the website uses. It needed
-no server changes: it posts to `/login` like the web form does and rides the
+`ios/` holds a native SwiftUI client for iPhone — this week's plan, set
+logging and preferences, against the same account the website uses. Sign-in
+needs nothing new: it posts to `/login` like the web form does and rides the
 session cookie, because `_api_sub` falls back to that cookie when there is no
 Bearer header.
 
 Ticks made on the phone go through `_apply_completion` like every other path,
 so they show up on `/account/plan` immediately. It keeps working with no
 signal — the last plan is cached and ticks queue until there is a connection.
+
+It added one route, `PATCH /api/v1/me`, which changes preferences under the
+same validation `POST /account` uses. It applies only the fields it is sent, so
+a phone holding an hour-old profile can't revert something changed on the
+website. `GET /api/v1/me` now returns the valid options alongside the current
+values, so clients don't hard-code the splits and levels.
 
 See `ios/README.md` to run it. Nothing in `ios/` is installed or served by the
 Python app, so it is inert to deploys.

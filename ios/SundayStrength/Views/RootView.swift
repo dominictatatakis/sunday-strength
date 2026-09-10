@@ -10,7 +10,12 @@ struct RootView: View {
         case .signedOut(let error):
             LoginView(error: error)
         case .signedIn:
-            PlanView()
+            TabView {
+                PlanView()
+                    .tabItem { Label("Plan", systemImage: "list.bullet") }
+                SettingsView()
+                    .tabItem { Label("Settings", systemImage: "gearshape") }
+            }
         }
     }
 }

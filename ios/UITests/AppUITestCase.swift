@@ -27,18 +27,29 @@ class AppUITestCase: XCTestCase {
         return reachable
     }
 
-    /// The plan screen is identified by its Sign out control plus at least one
-    /// exercise row, rather than by any particular exercise: which movements
-    /// appear depends on the week, and these tests should not break every Monday.
+    /// Signed in is identified by the tab bar plus at least one exercise row,
+    /// rather than by any particular exercise: which movements appear depends
+    /// on the week, and these tests should not break every Monday.
     func planIsShowing(_ app: XCUIApplication) -> Bool {
-        guard app.buttons["Sign out"].waitForExistence(timeout: 15) else {
+        guard app.tabBars.buttons["Plan"].waitForExistence(timeout: 15) else {
             return false
         }
         return app.cells.firstMatch.waitForExistence(timeout: 5)
     }
 
+    func openSettings(_ app: XCUIApplication) {
+        let tab = app.tabBars.buttons["Settings"]
+        XCTAssertTrue(tab.waitForExistence(timeout: 10), "no Settings tab")
+        tab.tap()
+    }
+
     /// Signs out first if a previous run left credentials in the Keychain.
+    /// Sign out lives in Settings, so this has to go there to reach it.
     func signOutIfNeeded(_ app: XCUIApplication) {
+        guard app.tabBars.buttons["Settings"].waitForExistence(timeout: 5) else {
+            return          // already signed out
+        }
+        openSettings(app)
         let signOut = app.buttons["Sign out"]
         if signOut.waitForExistence(timeout: 5) {
             signOut.tap()
@@ -79,7 +90,7 @@ class AppUITestCase: XCTestCase {
     func launchSignedIn() -> XCUIApplication {
         let app = XCUIApplication()
         app.launch()
-        if !app.buttons["Sign out"].waitForExistence(timeout: 8) {
+        if !app.tabBars.buttons["Plan"].waitForExistence(timeout: 8) {
             signIn(app, password: password)
             XCTAssertTrue(planIsShowing(app), "could not sign in")
             // Relaunch so the session is restored from the Keychain instead.

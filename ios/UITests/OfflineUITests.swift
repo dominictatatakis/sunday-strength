@@ -19,7 +19,7 @@ final class OfflineUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        XCTAssertTrue(app.buttons["Sign out"].waitForExistence(timeout: 15),
+        XCTAssertTrue(app.tabBars.buttons["Plan"].waitForExistence(timeout: 15),
                       "offline launch should show the cached plan, not a login screen")
         XCTAssertTrue(app.staticTexts["Offline — showing your last saved plan."]
                         .waitForExistence(timeout: 10),

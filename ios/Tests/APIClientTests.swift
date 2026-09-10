@@ -119,23 +119,3 @@ final class APIClientTests: XCTestCase {
         }
     }
 }
-
-private extension URLRequest {
-    /// URLProtocol receives the body as a stream, not httpBody.
-    func httpBodyStreamData() -> Data? {
-        if let body = httpBody { return body }
-        guard let stream = httpBodyStream else { return nil }
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        let size = 1024
-        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: size)
-        defer { buffer.deallocate() }
-        while stream.hasBytesAvailable {
-            let read = stream.read(buffer, maxLength: size)
-            if read <= 0 { break }
-            data.append(buffer, count: read)
-        }
-        return data
-    }
-}

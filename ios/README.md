@@ -1,11 +1,12 @@
 # Sunday Strength for iOS
 
 A native SwiftUI client for the same account as the website. Shows this week's
-plan and logs completed sets, working offline in a gym.
+plan, logs completed sets, and edits your preferences — working offline in a
+gym.
 
-Step 1 of `docs/superpowers/specs/2026-09-09-ios-app-design.md`. It uses only
-endpoints that already exist — **the server needs no changes for this app to
-work**.
+Steps 1 and 3 of `docs/superpowers/specs/2026-09-09-ios-app-design.md`. Step 2,
+the progress tab, is not built. Everything but the settings tab runs on
+endpoints that already existed; settings added `PATCH /api/v1/me`.
 
 ## Running it
 
@@ -65,6 +66,18 @@ The UI tests need the local server; they skip themselves when there is none, so
 a plain test run stays green without one. `OfflineUITests` is the exception: it
 runs with the server deliberately stopped.
 
+## Changing preferences
+
+`PATCH /api/v1/me` takes any subset of `days_per_week`, `experience`,
+`equipment` and `include_run`, and validates them exactly as `POST /account`
+does. The app sends only the fields that differ from the profile it holds — it
+may be an hour old, and resending all four would revert anything changed on the
+website meanwhile.
+
+Saving rebuilds the week, because those preferences are what `generate_plan` is
+given. Sets already logged against exercises that drop out stop being shown,
+which is what the account form already does.
+
 ## How sign-in works
 
 There is no token endpoint. The app posts to `/login` exactly as the website's
@@ -90,6 +103,7 @@ workout.
 | `Net/OfflineQueue.swift` | Ticks made without signal. |
 | `Net/PlanCache.swift` | Last plan seen, for offline launches. |
 | `AppModel.swift` | Auth state, the current plan, optimistic updates. |
+| `Views/SettingsView.swift` | Preferences. Sends only what changed. |
 | `Views/` | SwiftUI, no logic beyond formatting. |
 
 No third-party dependencies, matching the Python side's stdlib-first rule.

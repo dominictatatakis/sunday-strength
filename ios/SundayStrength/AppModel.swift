@@ -14,7 +14,9 @@ final class AppModel {
     private(set) var me: Me?
     private(set) var plan: Plan?
     private(set) var isOffline = false
+    private(set) var isSaving = false
     var errorMessage: String?
+    var settingsError: String?
 
     private let api: APIClient
     private let queue: OfflineQueue
@@ -69,6 +71,43 @@ final class AppModel {
         me = nil
         plan = nil
         phase = .signedOut(nil)
+    }
+
+    /// Saves only what differs from the profile we hold, so a value changed on
+    /// the website since launch is not silently reverted.
+    ///
+    /// Returns true if anything was sent and accepted.
+    @discardableResult
+    func saveSettings(daysPerWeek: Int, experience: String,
+                      equipment: String, includeRun: Bool) async -> Bool {
+        guard let current = me else { return false }
+
+        var patch = PrefsPatch()
+        if daysPerWeek != current.daysPerWeek { patch.daysPerWeek = daysPerWeek }
+        if experience != current.experience { patch.experience = experience }
+        if equipment != current.equipment { patch.equipment = equipment }
+        if includeRun != current.includeRun { patch.includeRun = includeRun }
+        guard patch != PrefsPatch() else { return false }
+
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            me = try await api.updateMe(patch)
+            settingsError = nil
+            // These preferences are what generate_plan is given, so the week
+            // has just changed underneath the plan tab.
+            await loadPlan()
+            return true
+        } catch APIError.rejected(let detail) {
+            settingsError = detail
+        } catch APIError.notAuthorised {
+            await restore()
+        } catch APIError.offline {
+            settingsError = "Can't reach Sunday Strength. Your settings weren't saved."
+        } catch {
+            settingsError = "Something went wrong. Your settings weren't saved."
+        }
+        return false
     }
 
     /// Optimistic: the row changes immediately, because waiting for a round

@@ -48,11 +48,6 @@ struct PlanView: View {
             }
             .navigationTitle(model.plan.map { "Week \($0.week)" } ?? "This week")
             .refreshable { await model.loadPlan() }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Sign out") { model.signOut() }
-                }
-            }
         }
     }
 }

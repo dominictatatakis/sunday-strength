@@ -1,15 +1,16 @@
 # Sunday Strength for iOS — design
 
-_9 September 2026. Status: approved, step 1 not yet planned._
+_9 September 2026. Status: steps 1 and 3 built and verified. Step 2 (progress)
+deferred by the owner on 10 September._
 
 A native SwiftUI iPhone app in a new `ios/` folder, signing into the same
 account as the website and showing the same week. Built in three steps:
 
-| Step | Adds | Server change |
-|---|---|---|
-| 1 | Login, this week's plan, ticking sets | **none** |
-| 2 | Progress tab | `GET /api/v1/progress` |
-| 3 | Settings tab | `PATCH /api/v1/me` |
+| Step | Adds | Server change | |
+|---|---|---|---|
+| 1 | Login, this week's plan, ticking sets | **none** | ✅ |
+| 2 | Progress tab | `GET /api/v1/progress` | deferred |
+| 3 | Settings tab | `PATCH /api/v1/me` | ✅ |
 
 This document specifies step 1 in full and sketches 2 and 3. Each later step
 gets its own design before any code.

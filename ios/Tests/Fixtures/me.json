@@ -4,5 +4,32 @@
     "days_per_week": 4,
     "experience": "intermediate",
     "equipment": "full",
-    "include_run": true
+    "include_run": true,
+    "options": {
+        "days_per_week": [
+            2,
+            3,
+            4,
+            5
+        ],
+        "experience": [
+            "beginner",
+            "intermediate",
+            "advanced"
+        ],
+        "equipment": [
+            {
+                "value": "bodyweight",
+                "name": "Bodyweight only"
+            },
+            {
+                "value": "dumbbells",
+                "name": "Dumbbells / home weights"
+            },
+            {
+                "value": "full",
+                "name": "Full gym (machines, cables, barbells)"
+            }
+        ]
+    }
 }

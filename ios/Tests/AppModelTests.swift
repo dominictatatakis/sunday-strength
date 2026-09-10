@@ -89,3 +89,85 @@ final class AppModelTests: XCTestCase {
         XCTAssertTrue(model.isOffline)
     }
 }
+
+extension AppModelTests {
+
+    /// Login answers a 303 to /account; anything else is read as a failure,
+    /// so a stub that returns 200 for everything never signs in.
+    private func loginRedirect() -> (HTTPURLResponse, Data) {
+        (HTTPURLResponse(url: base, statusCode: 303, httpVersion: nil,
+                         headerFields: ["Location": "/account"])!, Data())
+    }
+
+    private var meJSON: String {
+        """
+        {"email":"a@b.com","status":"active","days_per_week":4,
+         "experience":"intermediate","equipment":"full","include_run":true,
+         "options":{"days_per_week":[2,3,4,5],
+                    "experience":["beginner","intermediate","advanced"],
+                    "equipment":[{"value":"full","name":"Full gym"}]}}
+        """
+    }
+
+    /// Only the field that actually differs may be sent: the profile could be
+    /// an hour old, and resending all four would revert anything changed on
+    /// the website in the meantime.
+    func testSaveSettingsSendsOnlyWhatChanged() async {
+        let body = LockedBox()
+        StubProtocol.handler = { request in
+            if request.url!.path.hasSuffix("/login") { return self.loginRedirect() }
+            if request.httpMethod == "PATCH" {
+                body.value = request.httpBodyStreamData()
+                    .map { String(decoding: $0, as: UTF8.self) }
+            }
+            if request.url!.path.contains("plan") {
+                return self.ok(Data(self.planJSON.utf8))
+            }
+            return self.ok(Data(self.meJSON.utf8))
+        }
+        let model = makeModel()
+        await model.signIn(email: "a@b.com", password: "x")
+        XCTAssertNotNil(model.me, "the test never signed in")
+
+        await model.saveSettings(daysPerWeek: 3, experience: "intermediate",
+                                 equipment: "full", includeRun: true)
+
+        let sent = body.value ?? ""
+        XCTAssertTrue(sent.contains("days_per_week"), "sent: \(sent)")
+        XCTAssertFalse(sent.contains("experience"), "sent: \(sent)")
+        XCTAssertFalse(sent.contains("equipment"), "sent: \(sent)")
+    }
+
+    func testSaveSettingsSendsNothingWhenNothingChanged() async {
+        let calls = LockedBox()
+        StubProtocol.handler = { request in
+            if request.url!.path.hasSuffix("/login") { return self.loginRedirect() }
+            if request.httpMethod == "PATCH" { calls.value = "patched" }
+            if request.url!.path.contains("plan") {
+                return self.ok(Data(self.planJSON.utf8))
+            }
+            return self.ok(Data(self.meJSON.utf8))
+        }
+        let model = makeModel()
+        await model.signIn(email: "a@b.com", password: "x")
+        XCTAssertNotNil(model.me, "the test never signed in")
+
+        let changed = await model.saveSettings(
+            daysPerWeek: 4, experience: "intermediate",
+            equipment: "full", includeRun: true)
+
+        XCTAssertFalse(changed)
+        XCTAssertNil(calls.value, "an unchanged form must not call the API")
+    }
+}
+
+/// Somewhere for the stub's closure to hand a value back.
+final class LockedBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: String?
+
+    var value: String? {
+        get { lock.withLock { stored } }
+        set { lock.withLock { stored = newValue } }
+    }
+}

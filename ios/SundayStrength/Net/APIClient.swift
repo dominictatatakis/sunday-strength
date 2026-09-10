@@ -64,6 +64,17 @@ actor APIClient {
                       query: week.map { [URLQueryItem(name: "week", value: $0)] })
     }
 
+    /// Changes preferences. Sends only what differs, so a stale profile
+    /// cannot revert a change made on the website since launch.
+    func updateMe(_ patch: PrefsPatch) async throws -> Me {
+        var request = URLRequest(
+            url: baseURL.appendingPathComponent("api/v1/me"))
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSON.encoder.encode(patch)
+        return try JSON.decoder.decode(Me.self, from: await send(request))
+    }
+
     // MARK: - Writes
 
     func setCompletion(_ body: CompletionBody) async throws {
