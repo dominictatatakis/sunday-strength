@@ -47,7 +47,7 @@ struct LoginView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(email.isEmpty || password.isEmpty)
 
-            Text("No account yet? Sign up at sundaystrength.com.")
+            Text("No account yet? Sign up at sunday-strength.onrender.com.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }

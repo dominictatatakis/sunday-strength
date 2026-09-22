@@ -31,6 +31,7 @@
 		ABFDEDC04BFD153B507E9890 /* OfflineQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8198FCA81FEF215954A00788 /* OfflineQueue.swift */; };
 		B67CFD68CCA8237D72787F2C /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 569CB00C577E380E88326ECA /* AppModelTests.swift */; };
 		B69738D8E03F9FE746AAF334 /* SignInUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2948834A97B2C8CE871EFA45 /* SignInUITests.swift */; };
+		BE6F929E72F47CA5E60E0CF2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9B4BA82A83C0940690225EA7 /* Assets.xcassets */; };
 		C18FA9D18D7DDB5FA7DEEED8 /* SettingsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 277BDC8B16456B8A3E33D4FD /* SettingsUITests.swift */; };
 		CF6F683C970FDEC97C49E9C5 /* LoggingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29AFAE192B8D1387978AA1AE /* LoggingUITests.swift */; };
 		CFAC8B82E1A322B15CA67010 /* StubProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724FFF1836763611C2B9DB90 /* StubProtocol.swift */; };
@@ -78,6 +79,7 @@
 		7B8744E7DE5249C4C013FD47 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		8198FCA81FEF215954A00788 /* OfflineQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineQueue.swift; sourceTree = "<group>"; };
 		968BFA36573BBB7B56205E69 /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
+		9B4BA82A83C0940690225EA7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9E53F4B70A857796458AB037 /* AppUITestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUITestCase.swift; sourceTree = "<group>"; };
 		A12DC4969948614E5FF54164 /* PlanCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanCache.swift; sourceTree = "<group>"; };
 		A92B63FD452803A43C72BB04 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
@@ -130,6 +132,7 @@
 			children = (
 				A92B63FD452803A43C72BB04 /* AppConfig.swift */,
 				52970BF6851ADF2381ACCD1E /* AppModel.swift */,
+				9B4BA82A83C0940690225EA7 /* Assets.xcassets */,
 				088368522F0F4B985DB38D19 /* Info.plist */,
 				0CDAF3B959A8167A0009165A /* SundayStrengthApp.swift */,
 				2C02DF6ABF3F989158C7DC9F /* Models */,
@@ -209,6 +212,7 @@
 			buildConfigurationList = 33DCA81D338566163BCC0990 /* Build configuration list for PBXNativeTarget "SundayStrength" */;
 			buildPhases = (
 				FBF627934A8FF71EC9B2C5B3 /* Sources */,
+				15D9E7F52743FB5B508476E3 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -294,6 +298,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		15D9E7F52743FB5B508476E3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BE6F929E72F47CA5E60E0CF2 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8373BF12C9A32D6B2C8A56C7 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -439,9 +451,8 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -454,6 +465,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -517,6 +529,7 @@
 				CODE_SIGNING_REQUIRED = NO;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -535,6 +548,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

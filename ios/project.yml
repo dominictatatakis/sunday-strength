@@ -7,11 +7,16 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+  configs:
     # Ad-hoc signing, the simulator default. Signing cannot be switched off
     # entirely: an unsigned bundle has no keychain access group, so every
     # SecItemAdd fails with errSecMissingEntitlement (-34018).
-    CODE_SIGN_IDENTITY: "-"
-    CODE_SIGNING_REQUIRED: "NO"
+    # Debug only -- Release must sign for real or the App Store export fails.
+    Debug:
+      CODE_SIGN_IDENTITY: "-"
+      CODE_SIGNING_REQUIRED: "NO"
 targets:
   SundayStrength:
     type: application
@@ -27,6 +32,11 @@ targets:
       path: SundayStrength/Info.plist
       properties:
         CFBundleDisplayName: Sunday Strength
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # No encryption beyond HTTPS/Keychain, which is exempt. Declaring it
+        # here avoids the export-compliance prompt on every single upload.
+        ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
