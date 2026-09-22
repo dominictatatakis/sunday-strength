@@ -26,6 +26,10 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.sundaystrength.app
+        # iPhone only. Unset, this defaults to iPhone+iPad, and iPadOS requires
+        # an iPad-capable app to support every orientation for multitasking --
+        # which this portrait-only app does not (ITMS-90474).
+        TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: "NO"
         INFOPLIST_FILE: SundayStrength/Info.plist
     info:
