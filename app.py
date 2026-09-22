@@ -51,7 +51,13 @@ PRICE_IDS = {
     "monthly": os.environ.get("STRIPE_PRICE_MONTHLY", ""),
     "quarterly": os.environ.get("STRIPE_PRICE_QUARTERLY", ""),
 }
-DEV_MODE = not STRIPE_SECRET_KEY
+# Billing can be switched off without discarding the Stripe configuration:
+# set BILLING_ENABLED=0 to run the free-preview flow (accounts activate
+# immediately, no checkout) while the keys and price IDs stay in place for
+# whenever charging is switched back on.
+BILLING_ENABLED = os.environ.get("BILLING_ENABLED", "1").strip().lower() \
+    not in ("0", "false", "no", "off")
+DEV_MODE = not (STRIPE_SECRET_KEY and BILLING_ENABLED)
 
 if STRIPE_SECRET_KEY:
     import stripe
