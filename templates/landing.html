@@ -17,7 +17,7 @@
 
   <header class="hero">
     <div>
-      <p class="eyebrow">£5/month · no app · cancel anytime</p>
+      <p class="eyebrow">{% if dev_mode %}Free while in beta{% else %}£5/month{% endif %} · no app · cancel anytime</p>
       <h1>Your gym week.<br>In your inbox.<br><span class="accent">Sunday night.</span></h1>
       <p class="lede">Tell us how many days you can train and your experience
       level. Every Sunday you get one email with your exact week — exercises,
@@ -70,8 +70,8 @@
       <div class="dots">
         <span class="dot on" data-dot="0"></span>
         <span class="dot" data-dot="1"></span>
-        <span class="dot" data-dot="2"></span>
-        <span id="stepname">Step 1 of 3 — Your journey</span>
+        {% if not dev_mode %}<span class="dot" data-dot="2"></span>{% endif %}
+        <span id="stepname">Step 1 of {{ 2 if dev_mode else 3 }} — Your journey</span>
       </div>
 
       <!-- Step 1: journey -->
@@ -109,11 +109,15 @@
         </div>
         <div class="nav">
           <span></span>
-          <button type="button" data-next>Next: pick your plan →</button>
+          <button type="button" data-next>Next: {{ "create your account" if dev_mode else "pick your plan" }} →</button>
         </div>
       </section>
 
-      <!-- Step 2: plan -->
+      <!-- Step 2: plan. Hidden while billing is off -- there is nothing to
+           choose between, but /subscribe still validates the field. -->
+      {% if dev_mode %}
+      <input type="hidden" name="plan" value="monthly">
+      {% else %}
       <section class="step" data-step="1" hidden>
         <div class="cards">
           <label><input type="radio" name="plan" value="monthly" checked>
@@ -126,6 +130,7 @@
           <button type="button" data-next>Next: create your account →</button>
         </div>
       </section>
+      {% endif %}
 
       <!-- Step 3: account, then payment -->
       <section class="step" data-step="2" hidden>
@@ -194,9 +199,10 @@
 (function () {
   const steps = Array.from(document.querySelectorAll(".step"));
   const dots = Array.from(document.querySelectorAll(".dot"));
-  const names = ["Step 1 of 3 — Your journey",
+  const names = {% if dev_mode %}["Step 1 of 2 — Your journey",
+                 "Step 2 of 2 — Your account"]{% else %}["Step 1 of 3 — Your journey",
                  "Step 2 of 3 — Your plan",
-                 "Step 3 of 3 — Your account"];
+                 "Step 3 of 3 — Your account"]{% endif %};
   let current = 0;
 
   function show(n) {
@@ -204,18 +210,18 @@
     steps.forEach((s, i) => s.hidden = i !== n);
     dots.forEach((d, i) => d.classList.toggle("on", i <= n));
     document.getElementById("stepname").textContent = names[n];
-    if (n === 2) {
+    if (n === steps.length - 1) {
       const days = document.getElementById("days").value;
       const exp = document.getElementById("experience");
       const run = document.getElementById("include_run").checked;
       const kit = document.getElementById("equipment");
-      const plan = document.querySelector('input[name="plan"]:checked').value;
+      const plan = document.querySelector('input[name="plan"]:checked');
       document.getElementById("summary").textContent =
         "Your week: " + days + " gym days · " +
         exp.options[exp.selectedIndex].text.toLowerCase() + " · " +
         kit.options[kit.selectedIndex].text.toLowerCase() +
-        (run ? " · +1 run day" : "") + " · " +
-        (plan === "monthly" ? "£5/month" : "£12/quarter");
+        (run ? " · +1 run day" : "") +
+        (plan ? " · " + (plan.value === "monthly" ? "£5/month" : "£12/quarter") : "");
     }
   }
 
