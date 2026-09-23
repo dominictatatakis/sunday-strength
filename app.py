@@ -11,6 +11,7 @@ from __future__ import annotations
 import envfile  # noqa: F401  (must load .env before the imports below)
 
 import datetime
+import ipaddress
 import json
 import os
 import urllib.parse
@@ -24,6 +25,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 import db
+import ratelimit
 import emails
 import engine
 
@@ -63,7 +65,14 @@ if STRIPE_SECRET_KEY:
     import stripe
     stripe.api_key = STRIPE_SECRET_KEY
 
-app = FastAPI(title="Sunday Strength")
+# /docs and /openapi.json publish every route and schema in the app: handy
+# locally, a map of the attack surface on a public URL. Opt in with DEV_DOCS.
+DEV_DOCS = os.environ.get("DEV_DOCS", "").strip().lower() in ("1", "true", "yes")
+
+app = FastAPI(title="Sunday Strength",
+              docs_url="/docs" if DEV_DOCS else None,
+              redoc_url="/redoc" if DEV_DOCS else None,
+              openapi_url="/openapi.json" if DEV_DOCS else None)
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")),
           name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
@@ -74,6 +83,28 @@ EXDB: dict = {}
 if os.path.exists(_EXDB_PATH):
     with open(_EXDB_PATH) as f:
         EXDB = json.load(f)
+
+
+def _client_ip(request: Request) -> str:
+    """Render sits behind a proxy, so the socket address is the proxy's.
+
+    Read from the right. X-Forwarded-For is a list each hop appends to, so a
+    caller who sends one of their own produces "<whatever they wrote>, <their
+    real address>": the leftmost entry is the part they control. Walking from
+    the right and skipping private addresses finds the first hop we did not
+    add ourselves, without pinning how many proxies sit in front of us.
+    """
+    chain = [p.strip() for p in
+             request.headers.get("x-forwarded-for", "").split(",") if p.strip()]
+    for candidate in reversed(chain):
+        try:
+            if not ipaddress.ip_address(candidate).is_private:
+                return candidate
+        except ValueError:
+            continue
+    if chain:
+        return chain[-1]
+    return request.client.host if request.client else "unknown"
 
 
 def exercise_url(slug: str) -> str:
@@ -144,11 +175,13 @@ def _valid_prefs(days: int, experience: str, plan: str,
 
 
 @app.post("/subscribe")
-def subscribe(email: str = Form(...), password: str = Form(...),
+def subscribe(request: Request, email: str = Form(...), password: str = Form(...),
               days: int = Form(...), experience: str = Form(...),
               include_run: bool = Form(False), plan: str = Form("monthly"),
               equipment: str = Form("full")):
     email = email.lower().strip()
+    if not ratelimit.hit(f"signup:{_client_ip(request)}", limit=5, window=900):
+        raise HTTPException(429, "Too many attempts. Try again shortly.")
     if "@" not in email or not _valid_prefs(days, experience, plan, equipment):
         raise HTTPException(400, "Invalid signup details.")
     if len(password) < 8:
@@ -288,14 +321,25 @@ def _email_for_customer(customer_id: str | None) -> str | None:
 
 
 @app.get("/login", response_class=HTMLResponse)
-def login_page(request: Request, error: int = 0, exists: int = 0):
+def login_page(request: Request, error: int = 0, exists: int = 0,
+               slow: int = 0):
     return templates.TemplateResponse(request, "login.html", {
-        "error": bool(error), "exists": bool(exists),
+        "error": bool(error), "exists": bool(exists), "slow": bool(slow),
         "google_enabled": GOOGLE_ENABLED})
 
 
 @app.post("/login")
-def login(email: str = Form(...), password: str = Form(...)):
+def login(request: Request, email: str = Form(...), password: str = Form(...)):
+    # Nothing stood between this form and unlimited password guessing, and the
+    # iOS app signs in through it too. Per-address so one account cannot be
+    # ground down, per-source so a list of addresses cannot be walked.
+    if not ratelimit.hit(f"login:{email.lower().strip()}", limit=8, window=900) or \
+       not ratelimit.hit(f"loginip:{_client_ip(request)}", limit=30, window=900):
+        # Said plainly rather than as another wrong-password message: someone
+        # locked out by their own typing will otherwise keep trying, and the
+        # limit is on attempts, so trying is what keeps them locked out. It
+        # tells an attacker only that a limit exists, which they can see anyway.
+        return RedirectResponse("/login?slow=1", status_code=303)
     conn = db.connect()
     sub = db.get_by_email(conn, email)
     if not sub or not db.check_password(password, sub["password_hash"]):
