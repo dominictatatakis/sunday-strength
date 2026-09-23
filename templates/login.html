@@ -14,6 +14,7 @@
   <div class="panel">
     <h2>Sign in</h2>
     {% if error %}<p class="notice err">Wrong email or password — try again.</p>{% endif %}
+    {% if slow %}<p class="notice err">Too many attempts. Wait a few minutes, then try again.</p>{% endif %}
     {% if exists %}<p class="notice">You already have an account with that
     email — sign in here to pick up where you left off.</p>{% endif %}
     {% if google_enabled %}
