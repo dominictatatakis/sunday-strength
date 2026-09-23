@@ -77,6 +77,31 @@ MIGRATIONS_PG = [
                       AND data_type <> 'text')
          THEN ALTER TABLE sends ALTER COLUMN week TYPE TEXT; END IF;
        END $$""",
+    # Supabase exposes every table in `public` through PostgREST, and its
+    # default grants hand anon/authenticated full read/write. Without RLS that
+    # made the whole subscriber table readable by anyone holding the anon key,
+    # which is public by design. Nothing here talks to the Data API — the app
+    # connects as the owning role, which bypasses RLS — so the fix is to deny
+    # everything: RLS on with no policies, grants revoked, and default
+    # privileges revoked so tables added later start locked too.
+    # No format('%I'): every statement goes through psycopg2 with a params
+    # tuple, which reads a bare % as a placeholder and fails the block.
+    """DO $$
+         DECLARE t text;
+         BEGIN
+           IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon')
+           THEN RETURN; END IF;          -- plain Postgres, no Data API
+           FOR t IN SELECT tablename FROM pg_tables
+                    WHERE schemaname = 'public' AND tableowner = current_user
+           LOOP
+             EXECUTE 'ALTER TABLE public.' || quote_ident(t)
+                     || ' ENABLE ROW LEVEL SECURITY';
+             EXECUTE 'REVOKE ALL ON public.' || quote_ident(t)
+                     || ' FROM anon, authenticated';
+           END LOOP;
+           EXECUTE 'ALTER DEFAULT PRIVILEGES IN SCHEMA public '
+                   'REVOKE ALL ON TABLES FROM anon, authenticated';
+         END $$""",
 ]
 
 SCHEMA = """
