@@ -8,7 +8,7 @@ settings:
   base:
     SWIFT_VERSION: "5.9"
     MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "2"
+    CURRENT_PROJECT_VERSION: "3"
   configs:
     # Ad-hoc signing, the simulator default. Signing cannot be switched off
     # entirely: an unsigned bundle has no keychain access group, so every
