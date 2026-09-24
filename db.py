@@ -68,6 +68,15 @@ CREATE TABLE IF NOT EXISTS bodyweights (
     weight_kg DOUBLE PRECISION NOT NULL,
     UNIQUE (subscriber_id, logged_on)
 );
+CREATE TABLE IF NOT EXISTS auth_identities (
+    id SERIAL PRIMARY KEY,
+    subscriber_id INTEGER NOT NULL REFERENCES subscribers(id),
+    provider TEXT NOT NULL,
+    subject_id TEXT NOT NULL,
+    email TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (provider, subject_id)
+);
 """
 
 # Applied once per process, after SCHEMA_PG. Each must be safe to re-run.
@@ -160,6 +169,18 @@ CREATE TABLE IF NOT EXISTS bodyweights (
     logged_on TEXT NOT NULL,                        -- 'YYYY-MM-DD'
     weight_kg REAL NOT NULL,
     UNIQUE (subscriber_id, logged_on)
+);
+-- Who a Google or Apple sign-in belongs to. Keyed on the provider's stable
+-- subject, not the email: Hide My Email gives a relay address that can
+-- change, and keying on it would hand someone a second, empty account.
+CREATE TABLE IF NOT EXISTS auth_identities (
+    id INTEGER PRIMARY KEY,
+    subscriber_id INTEGER NOT NULL REFERENCES subscribers(id),
+    provider TEXT NOT NULL,                         -- 'google' | 'apple'
+    subject_id TEXT NOT NULL,                       -- the provider's `sub`
+    email TEXT,                                     -- as given; may be a relay
+    created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+    UNIQUE (provider, subject_id)
 );
 """
 
@@ -329,6 +350,30 @@ def active_subscribers(conn) -> list[sqlite3.Row]:
 def get_by_email(conn, email: str) -> sqlite3.Row | None:
     return conn.execute("SELECT * FROM subscribers WHERE email = ?",
                         (email.lower().strip(),)).fetchone()
+
+
+def get_by_id(conn, subscriber_id: int) -> sqlite3.Row | None:
+    return conn.execute("SELECT * FROM subscribers WHERE id = ?",
+                        (subscriber_id,)).fetchone()
+
+
+def get_identity_subscriber(conn, provider: str,
+                            subject_id: str) -> sqlite3.Row | None:
+    return conn.execute(
+        """SELECT s.* FROM auth_identities i
+           JOIN subscribers s ON s.id = i.subscriber_id
+           WHERE i.provider = ? AND i.subject_id = ?""",
+        (provider, subject_id)).fetchone()
+
+
+def add_identity(conn, subscriber_id: int, provider: str, subject_id: str,
+                 email: str | None) -> None:
+    conn.execute(
+        """INSERT INTO auth_identities (subscriber_id, provider, subject_id, email)
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT (provider, subject_id) DO NOTHING""",
+        (subscriber_id, provider, subject_id, email))
+    conn.commit()
 
 
 def sub_equipment(sub) -> str:
