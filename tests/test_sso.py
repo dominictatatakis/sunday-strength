@@ -168,5 +168,155 @@ class WebCallback(Base):
         self.assertIn("sso=failed", r.headers["location"])
 
 
+
+
+from tests.keys import RAW_NONCE, apple_claims, jwks, sign  # noqa: E402
+
+APP_PREFS = {"days": 3, "experience": "beginner", "run": False,
+             "equipment": "dumbbells"}
+
+
+class Phone(Base):
+    def setUp(self):
+        super().setUp()
+        providers._APPLE_JWKS_CACHE.clear()
+        p = mock.patch.object(providers, "_fetch_apple_jwks", jwks)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def apple(self, prefs=None, **claims):
+        body = {"identity_token": sign(apple_claims(**claims)),
+                "nonce": RAW_NONCE}
+        if prefs is not None:
+            body["prefs"] = prefs
+        return self.client.post("/api/v1/auth/apple", json=body)
+
+    def test_the_server_says_which_providers_are_on(self):
+        self.assertEqual(self.client.get("/api/v1/auth/providers").json(),
+                         {"google": True, "apple": True})
+        with mock.patch.object(app_module, "GOOGLE_ENABLED", False):
+            self.assertFalse(
+                self.client.get("/api/v1/auth/providers").json()["google"])
+
+    def test_someone_new_is_asked_the_four_questions_first(self):
+        r = self.apple()
+        self.assertEqual((r.status_code, r.json()["error"]),
+                         (409, "needs_onboarding"))
+        self.assertEqual(self.count("subscribers"), 0)
+
+    def test_apple_with_preferences_creates_an_active_account(self):
+        r = self.apple(APP_PREFS)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json()["refresh"])
+        sub = db.get_by_email(self.conn, "dom@example.com")
+        self.assertEqual((sub["status"], sub["equipment"]),
+                         ("active", "dumbbells"))
+        # The cookie it set is a working session for the existing API.
+        self.assertEqual(self.client.get("/api/v1/me").status_code, 200)
+
+    def test_bad_preferences_are_refused_and_write_nothing(self):
+        for prefs in ({"days": 9, "experience": "beginner", "run": False,
+                       "equipment": "full"},
+                      {"days": 3, "experience": "guru", "run": False,
+                       "equipment": "full"},
+                      {"days": "3"}, "junk"):
+            self.assertEqual(self.apple(prefs).status_code, 400, prefs)
+        self.assertEqual(self.count("subscribers"), 0)
+
+    def test_a_bad_apple_token_is_401(self):
+        r = self.client.post("/api/v1/auth/apple",
+                             json={"identity_token": "x", "nonce": RAW_NONCE})
+        self.assertEqual(r.status_code, 401)
+        r = self.client.post("/api/v1/auth/apple", json={
+            "identity_token": sign(apple_claims()), "nonce": "replayed"})
+        self.assertEqual(r.status_code, 401)
+
+    def test_payments_on_means_no_new_accounts_from_the_phone(self):
+        with mock.patch.object(app_module, "DEV_MODE", False):
+            r = self.apple(APP_PREFS)
+        self.assertEqual((r.status_code, r.json()["error"]),
+                         (403, "no_account"))
+
+    def test_an_existing_subscriber_signs_straight_in(self):
+        self.password_account()
+        r = self.apple()
+        self.assertEqual(r.status_code, 200)
+
+    def test_a_refresh_token_brings_back_a_session(self):
+        refresh = self.apple(APP_PREFS).json()["refresh"]
+        fresh = TestClient(app_module.app)
+        self.assertEqual(fresh.get("/api/v1/me").status_code, 401)
+        r = fresh.post("/api/v1/auth/refresh", json={"refresh": refresh})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(fresh.get("/api/v1/me").status_code, 200)
+
+    def test_no_other_signed_blob_passes_as_a_refresh_token(self):
+        sid = self.password_account()
+        for blob in (db.sign_data({"login": True, "app": True}),
+                     db.sign_data({"handoff": sid}),
+                     db.sign_data({"pending": {"subject_id": "x"}}),
+                     "forged", ""):
+            r = self.client.post("/api/v1/auth/refresh", json={"refresh": blob})
+            self.assertEqual(r.status_code, 401, blob)
+
+
+class PhoneGoogle(Base):
+    def app_callback(self):
+        return self.callback({"login": True, "app": True})
+
+    def test_the_app_start_carries_app_in_signed_state(self):
+        r = self.client.get("/login/google?app=1", follow_redirects=False)
+        state = urllib.parse.parse_qs(
+            urllib.parse.urlparse(r.headers["location"]).query)["state"][0]
+        self.assertTrue(db.verify_data(state)["app"])
+
+    def test_the_phone_gets_a_handoff_never_a_session(self):
+        self.password_account()
+        self.google_says(ident())
+        r = self.app_callback()
+        loc = r.headers["location"]
+        self.assertTrue(loc.startswith("sundaystrength://auth?handoff="))
+        self.assertNotIn(app_module.SESSION_COOKIE, r.cookies)
+        handoff = urllib.parse.parse_qs(urllib.parse.urlparse(loc).query)["handoff"][0]
+        r = self.client.post("/api/v1/auth/google", json={"handoff": handoff})
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json()["refresh"])
+
+    def test_a_stale_or_forged_handoff_is_refused(self):
+        sid = self.password_account()
+        stale = db.sign_data({"handoff": sid})
+        with mock.patch("time.time", return_value=__import__("time").time() + 61):
+            r = self.client.post("/api/v1/auth/google", json={"handoff": stale})
+        self.assertEqual(r.status_code, 401)
+        for blob in ("forged", db.sign_data({"refresh": sid})):
+            r = self.client.post("/api/v1/auth/google", json={"handoff": blob})
+            self.assertEqual(r.status_code, 401)
+
+    def test_someone_new_comes_back_to_onboard_then_finishes(self):
+        self.google_says(ident(email="new@example.com"))
+        loc = self.app_callback().headers["location"]
+        self.assertTrue(loc.startswith("sundaystrength://auth?needs_onboarding=1"))
+        pending = urllib.parse.parse_qs(urllib.parse.urlparse(loc).query)["pending"][0]
+        self.assertEqual(self.count("subscribers"), 0)
+        r = self.client.post("/api/v1/auth/google",
+                             json={"pending": pending, "prefs": APP_PREFS})
+        self.assertEqual(r.status_code, 200)
+        self.assertIsNotNone(db.get_by_email(self.conn, "new@example.com"))
+
+    def test_a_forged_pending_identity_is_refused(self):
+        r = self.client.post("/api/v1/auth/google", json={
+            "pending": "made-up", "prefs": APP_PREFS})
+        self.assertEqual(r.status_code, 401)
+        self.assertEqual(self.count("subscribers"), 0)
+
+    def test_a_failed_app_sign_in_goes_back_to_the_app(self):
+        r = self.client.get("/auth/google?error=access_denied&state="
+                            + db.sign_data({"login": True, "app": True}),
+                            follow_redirects=False)
+        self.assertEqual(r.headers["location"], "sundaystrength://auth?error=1")
+
+
+import urllib.parse  # noqa: E402
+
 if __name__ == "__main__":
     unittest.main()

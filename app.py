@@ -17,8 +17,8 @@ import os
 import urllib.parse
 from html import escape as html_escape
 
-from fastapi import FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import Body, FastAPI, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -35,12 +35,23 @@ LOGIN_LINK_MAX_AGE = 60 * 30               # magic sign-in links: 30 min
 SESSION_MAX_AGE = 60 * 60 * 24 * 30        # login cookie: 30 days
 SESSION_COOKIE = "ss_session"
 OAUTH_STATE_MAX_AGE = 60 * 15              # Google round-trip: 15 min
+HANDOFF_MAX_AGE = 60                       # browser -> app handoff: 1 min
+REFRESH_MAX_AGE = 60 * 60 * 24 * 365       # the phone's refresh token: 1 year
+APP_CALLBACK = "sundaystrength://auth"
 
 # Google SSO — optional; the buttons appear once these are set.
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 GOOGLE_ENABLED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+# The bundle identifier is the aud of a token from the app; a Services ID
+# would be the aud of one from the website. Both are accepted, because a
+# token is issued to whichever surface asked for it. Apple needs no secret to
+# verify: its public keys are published.
+APPLE_BUNDLE_ID = os.environ.get("APPLE_BUNDLE_ID", "com.sundaystrength.app")
+APPLE_SERVICES_ID = os.environ.get("APPLE_SERVICES_ID", "")
+APPLE_ENABLED = bool(APPLE_BUNDLE_ID)
+APPLE_AUDIENCES = [a for a in (APPLE_BUNDLE_ID, APPLE_SERVICES_ID) if a]
 APP_BASE_URL = (os.environ.get("APP_BASE_URL")
                 or os.environ.get("RENDER_EXTERNAL_URL")  # set by Render
                 or "http://localhost:8000")
@@ -228,10 +239,12 @@ def subscribe_google(days: int = Form(...), experience: str = Form(...),
 
 
 @app.get("/login/google")
-def login_google():
+def login_google(app: int = 0):
     if not GOOGLE_ENABLED:
         raise HTTPException(404, "Google sign-in is not configured.")
-    return _google_redirect({"login": True})
+    # `app` rides in the signed state so the callback knows to hand back to
+    # the phone rather than set a cookie. Signed, so it cannot be flipped.
+    return _google_redirect({"login": True, "app": bool(app)})
 
 
 def _resolve_identity(conn, ident, prefs: dict | None, from_app: bool):
@@ -283,15 +296,35 @@ def google_callback(code: str = "", state: str = "", error: str = ""):
     if not GOOGLE_ENABLED:
         raise HTTPException(404, "Google sign-in is not configured.")
     st = db.verify_data(state, max_age=OAUTH_STATE_MAX_AGE)
+    # Read before the bail-outs so a failure returns to whichever surface
+    # started it. An unsigned state is nobody's, so it goes to the web.
+    for_app = bool(st and st.get("app"))
+    failed = RedirectResponse(f"{APP_CALLBACK}?error=1" if for_app
+                              else "/?sso=failed", status_code=303)
     if error or not code or st is None:
-        return RedirectResponse("/?sso=failed", status_code=303)
+        return failed
     try:
         ident = providers.verify_google(code, f"{APP_BASE_URL}/auth/google",
                                         GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
     except providers.ProviderError:
-        return RedirectResponse("/?sso=failed", status_code=303)
+        return failed
 
     conn = db.connect()
+    if for_app:
+        sub, problem, _ = _resolve_identity(conn, ident, None, from_app=True)
+        if sub is not None:
+            # A one-minute handoff rather than a session: a token in a URL
+            # reaches logs and history, and a session is good for a month.
+            return RedirectResponse(
+                f"{APP_CALLBACK}?handoff={db.sign_data({'handoff': sub['id']})}",
+                status_code=303)
+        if problem == "needs_onboarding":
+            # The identity travels signed, so the app cannot alter who it is
+            # while it asks the four questions.
+            return RedirectResponse(
+                f"{APP_CALLBACK}?needs_onboarding=1&pending="
+                f"{_pending_identity(ident)}", status_code=303)
+        return failed
     prefs = None
     if st.get("signup"):
         prefs = {"days": st["days"], "experience": st["experience"],
@@ -305,6 +338,139 @@ def google_callback(code: str = "", state: str = "", error: str = ""):
         # already paying is simply signed in by _finish_signup.
         return _finish_signup(conn, sub["email"])
     return _login_response(sub["email"], "/account")
+
+
+def _pending_identity(ident) -> str:
+    return db.sign_data({"pending": {
+        "provider": ident.provider, "subject_id": ident.subject_id,
+        "email": ident.email or "", "verified": bool(ident.email_verified)}})
+
+
+def _api_error(status: int, error: str, message: str, **extra) -> JSONResponse:
+    return JSONResponse({"error": error, "message": message, **extra},
+                        status_code=status)
+
+
+_PROBLEMS = {
+    "needs_onboarding": (409, "Tell us how you train first."),
+    "no_account": (403, "There's no Sunday Strength account for that sign-in."),
+    "email_in_use": (409, "That email address already has an account. "
+                          "Sign in with your password instead."),
+    "unverified": (401, "That sign-in didn't work."),
+}
+
+
+def _app_prefs(raw) -> dict | None:
+    """The four onboarding answers, or None if absent. Raises 400 if
+    present but not valid, so a bad answer never becomes a half-made row."""
+    if raw is None:
+        return None
+    try:
+        prefs = {"days": raw["days"], "experience": raw["experience"],
+                 "run": raw["run"], "equipment": raw["equipment"],
+                 "plan": "monthly"}
+        ok = (type(prefs["days"]) is int and type(prefs["run"]) is bool
+              and _valid_prefs(prefs["days"], prefs["experience"],
+                               prefs["plan"], prefs["equipment"]))
+    except (TypeError, KeyError):
+        ok = False
+    if not ok:
+        raise HTTPException(400, "Those training preferences aren't valid.")
+    return prefs
+
+
+def _app_signed_in(conn, sub, created: bool) -> JSONResponse:
+    """The phone is signed in: the same ss_session cookie the login form
+    sets, so every /api/v1 call works as before, plus a refresh token -- a
+    provider account has no password to replay when the cookie expires."""
+    if created and DEV_MODE:
+        db.set_status(conn, sub["email"], "active")
+        _send_welcome_safe(conn, sub["email"])
+    resp = JSONResponse({"refresh": db.sign_data({"refresh": sub["id"]}),
+                         "email": sub["email"]})
+    resp.set_cookie(SESSION_COOKIE, db.sign_email(sub["email"]), httponly=True,
+                    max_age=SESSION_MAX_AGE, samesite="lax",
+                    secure=APP_BASE_URL.startswith("https"))
+    return resp
+
+
+def _app_resolve(request: Request, conn, ident, prefs, **extra):
+    sub, problem, created = _resolve_identity(conn, ident, prefs, from_app=True)
+    if sub is not None:
+        return _app_signed_in(conn, sub, created)
+    status, message = _PROBLEMS[problem]
+    return _api_error(status, problem, message, **extra)
+
+
+def _sso_limited(request: Request) -> bool:
+    return not ratelimit.hit(f"sso:{_client_ip(request)}", limit=30, window=900)
+
+
+@app.get("/api/v1/auth/providers")
+def api_auth_providers():
+    """Which buttons the app should show. A provider without credentials is
+    not offered, so a half-configured one shows nothing rather than failing."""
+    return {"google": GOOGLE_ENABLED, "apple": APPLE_ENABLED}
+
+
+@app.post("/api/v1/auth/apple")
+def api_auth_apple(request: Request, body: dict = Body(...)):
+    if not APPLE_ENABLED:
+        raise HTTPException(404, "Apple sign-in is not configured.")
+    if _sso_limited(request):
+        return _api_error(429, "rate_limited", "Too many attempts. Try again shortly.")
+    prefs = _app_prefs(body.get("prefs"))
+    try:
+        ident = providers.verify_apple(str(body.get("identity_token") or ""),
+                                       str(body.get("nonce") or ""),
+                                       APPLE_AUDIENCES)
+    except providers.ProviderError:
+        return _api_error(401, "unauthenticated", "That sign-in didn't work.")
+    return _app_resolve(request, db.connect(), ident, prefs)
+
+
+@app.post("/api/v1/auth/google")
+def api_auth_google(request: Request, body: dict = Body(...)):
+    """The phone comes back from the browser with one of two things we signed
+    ourselves: a handoff (signed in) or a pending identity (needs the four
+    questions). It never holds a Google credential."""
+    if not GOOGLE_ENABLED:
+        raise HTTPException(404, "Google sign-in is not configured.")
+    if _sso_limited(request):
+        return _api_error(429, "rate_limited", "Too many attempts. Try again shortly.")
+    conn = db.connect()
+    denied = _api_error(401, "unauthenticated", "That sign-in didn't work.")
+    if body.get("handoff"):
+        data = db.verify_data(str(body["handoff"]), max_age=HANDOFF_MAX_AGE)
+        sub = db.get_by_id(conn, data["handoff"]) if data and "handoff" in data else None
+        return _app_signed_in(conn, sub, False) if sub else denied
+    prefs = _app_prefs(body.get("prefs"))
+    data = db.verify_data(str(body.get("pending") or ""),
+                          max_age=OAUTH_STATE_MAX_AGE)
+    pending = data.get("pending") if data else None
+    if not isinstance(pending, dict) or not pending.get("subject_id") \
+            or pending.get("provider") != "google":
+        return denied
+    ident = providers.ProviderIdentity(
+        "google", pending["subject_id"], pending.get("email") or None,
+        bool(pending.get("verified")))
+    return _app_resolve(request, conn, ident, prefs,
+                        pending=str(body.get("pending")))
+
+
+@app.post("/api/v1/auth/refresh")
+def api_auth_refresh(request: Request, body: dict = Body(...)):
+    """Swap the phone's refresh token for a fresh session. Only a blob minted
+    as a refresh token passes: the OAuth state, handoffs and pending
+    identities are signed with the same key, so the key name is the check."""
+    if _sso_limited(request):
+        return _api_error(429, "rate_limited", "Too many attempts. Try again shortly.")
+    conn = db.connect()
+    data = db.verify_data(str(body.get("refresh") or ""), max_age=REFRESH_MAX_AGE)
+    sub = db.get_by_id(conn, data["refresh"]) if data and "refresh" in data else None
+    if sub is None:
+        return _api_error(401, "unauthenticated", "Please sign in again.")
+    return _app_signed_in(conn, sub, False)
 
 
 @app.get("/success", response_class=HTMLResponse)
