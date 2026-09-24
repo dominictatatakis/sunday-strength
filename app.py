@@ -17,7 +17,6 @@ import os
 import urllib.parse
 from html import escape as html_escape
 
-import httpx
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -25,6 +24,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 import db
+import providers
 import ratelimit
 import emails
 import engine
@@ -41,8 +41,6 @@ GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 GOOGLE_ENABLED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
 APP_BASE_URL = (os.environ.get("APP_BASE_URL")
                 or os.environ.get("RENDER_EXTERNAL_URL")  # set by Render
                 or "http://localhost:8000")
@@ -236,6 +234,50 @@ def login_google():
     return _google_redirect({"login": True})
 
 
+def _resolve_identity(conn, ident, prefs: dict | None, from_app: bool):
+    """(subscriber, problem, created) for a verified provider identity.
+
+    The one place that decides who a Google or Apple sign-in belongs to, so
+    the website and the phone cannot drift apart. problem is None,
+    'needs_onboarding', 'no_account', 'email_in_use' or 'unverified'.
+    Nothing is written unless the answer is a subscriber.
+    """
+    sub = db.get_identity_subscriber(conn, ident.provider, ident.subject_id)
+    if sub:
+        return sub, None, False
+
+    email = (ident.email or "").strip().lower()
+    # Linking by address needs the provider to vouch for it, and a relay
+    # address is per-app by construction -- it says nothing about who holds
+    # an account here, even one registered under that very relay.
+    if email and ident.email_verified and not providers.is_relay(email):
+        existing = db.get_by_email(conn, email)
+        if existing:
+            db.add_identity(conn, existing["id"], ident.provider,
+                            ident.subject_id, ident.email)
+            return existing, None, False
+
+    # Someone new. Without preferences there is no plan to show, and a row
+    # created now would be reachable only through a screen they can skip.
+    if prefs is None:
+        return None, "needs_onboarding", False
+    # The app cannot take payment (App Store 3.1.1), so it only creates
+    # accounts while there is nothing to pay.
+    if from_app and not DEV_MODE:
+        return None, "no_account", False
+    # The weekly plan is emailed to this address, so it must be one the
+    # provider has verified -- otherwise anyone could park an account on an
+    # address they do not hold.
+    if not email or not ident.email_verified:
+        return None, "unverified", False
+    if db.get_by_email(conn, email):
+        return None, "email_in_use", False
+    sid = db.upsert_subscriber(conn, email, prefs["days"], prefs["experience"],
+                               prefs["run"], prefs["plan"], prefs["equipment"])
+    db.add_identity(conn, sid, ident.provider, ident.subject_id, ident.email)
+    return db.get_by_id(conn, sid), None, True
+
+
 @app.get("/auth/google")
 def google_callback(code: str = "", state: str = "", error: str = ""):
     if not GOOGLE_ENABLED:
@@ -243,34 +285,26 @@ def google_callback(code: str = "", state: str = "", error: str = ""):
     st = db.verify_data(state, max_age=OAUTH_STATE_MAX_AGE)
     if error or not code or st is None:
         return RedirectResponse("/?sso=failed", status_code=303)
-
-    token = httpx.post(GOOGLE_TOKEN_URL, data={
-        "code": code,
-        "client_id": GOOGLE_CLIENT_ID,
-        "client_secret": GOOGLE_CLIENT_SECRET,
-        "redirect_uri": f"{APP_BASE_URL}/auth/google",
-        "grant_type": "authorization_code",
-    }, timeout=20).json()
-    if "access_token" not in token:
-        return RedirectResponse("/?sso=failed", status_code=303)
-    info = httpx.get(GOOGLE_USERINFO_URL, headers={
-        "Authorization": f"Bearer {token['access_token']}"}, timeout=20).json()
-    email = (info.get("email") or "").lower().strip()
-    if not email or not info.get("email_verified"):
+    try:
+        ident = providers.verify_google(code, f"{APP_BASE_URL}/auth/google",
+                                        GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
+    except providers.ProviderError:
         return RedirectResponse("/?sso=failed", status_code=303)
 
     conn = db.connect()
+    prefs = None
     if st.get("signup"):
-        # Google has proved they own this address, so updating an existing
-        # row here is safe (unlike the email+password path).
-        db.upsert_subscriber(conn, email, st["days"], st["experience"],
-                             st["run"], st["plan"],
-                             st.get("equipment", "full"))
-        return _finish_signup(conn, email)
-    # plain login
-    if not db.get_by_email(conn, email):
+        prefs = {"days": st["days"], "experience": st["experience"],
+                 "run": st["run"], "plan": st["plan"],
+                 "equipment": st.get("equipment", "full")}
+    sub, problem, _ = _resolve_identity(conn, ident, prefs, from_app=False)
+    if sub is None:
         return RedirectResponse("/?sso=failed", status_code=303)
-    return _login_response(email, "/account")
+    if st.get("signup"):
+        # Payment, or activation while payments are off. An account that is
+        # already paying is simply signed in by _finish_signup.
+        return _finish_signup(conn, sub["email"])
+    return _login_response(sub["email"], "/account")
 
 
 @app.get("/success", response_class=HTMLResponse)
