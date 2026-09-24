@@ -192,8 +192,10 @@ class Phone(Base):
         return self.client.post("/api/v1/auth/apple", json=body)
 
     def test_the_server_says_which_providers_are_on(self):
-        self.assertEqual(self.client.get("/api/v1/auth/providers").json(),
-                         {"google": True, "apple": True})
+        body = self.client.get("/api/v1/auth/providers").json()
+        self.assertEqual((body["google"], body["apple"]), (True, True))
+        self.assertIn("dumbbells",
+                      [o["value"] for o in body["options"]["equipment"]])
         with mock.patch.object(app_module, "GOOGLE_ENABLED", False):
             self.assertFalse(
                 self.client.get("/api/v1/auth/providers").json()["google"])

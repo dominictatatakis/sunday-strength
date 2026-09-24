@@ -409,8 +409,11 @@ def _sso_limited(request: Request) -> bool:
 @app.get("/api/v1/auth/providers")
 def api_auth_providers():
     """Which buttons the app should show. A provider without credentials is
-    not offered, so a half-configured one shows nothing rather than failing."""
-    return {"google": GOOGLE_ENABLED, "apple": APPLE_ENABLED}
+    not offered, so a half-configured one shows nothing rather than failing.
+    The preference options come too: someone new answers the four onboarding
+    questions before there is a profile to carry them."""
+    return {"google": GOOGLE_ENABLED, "apple": APPLE_ENABLED,
+            "options": _pref_options()}
 
 
 @app.post("/api/v1/auth/apple")
@@ -868,13 +871,14 @@ def _me_payload(sub) -> dict:
             "experience": sub["experience"],
             "equipment": db.sub_equipment(sub),
             "include_run": bool(sub["include_run"]),
-            "options": {
-                "days_per_week": sorted(engine.SPLITS),
-                "experience": list(engine.LEVELS),
-                "equipment": [{"value": tier,
-                               "name": engine.EQUIPMENT_NAMES[tier]}
-                              for tier in engine.EQUIPMENT],
-            }}
+            "options": _pref_options()}
+
+
+def _pref_options() -> dict:
+    return {"days_per_week": sorted(engine.SPLITS),
+            "experience": list(engine.LEVELS),
+            "equipment": [{"value": tier, "name": engine.EQUIPMENT_NAMES[tier]}
+                          for tier in engine.EQUIPMENT]}
 
 
 @app.get("/api/v1/me")
