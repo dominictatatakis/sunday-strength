@@ -44,6 +44,22 @@ final class APIClientTests: XCTestCase {
         }
     }
 
+    /// Throttled sign-ins redirect to /login?slow=1. Checking only for
+    /// error=1 read that as success.
+    func testAThrottledLoginIsNotASuccess() async {
+        StubProtocol.handler = { _ in
+            (self.response(303, headers: ["Location": "/login?slow=1"]), Data())
+        }
+        do {
+            try await client().login(email: "a@b.com", password: "x")
+            XCTFail("expected throttled")
+        } catch let error as APIError {
+            XCTAssertEqual(error, .throttled)
+        } catch {
+            XCTFail("unexpected error \(error)")
+        }
+    }
+
     func testLoginFormEncodesTheBody() async throws {
         StubProtocol.handler = { request in
             let body = request.httpBodyStreamData() ?? Data()

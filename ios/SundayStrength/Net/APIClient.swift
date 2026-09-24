@@ -2,11 +2,26 @@ import Foundation
 
 enum APIError: Error, Equatable {
     case badCredentials
+    /// Too many sign-in attempts; the server wants a pause.
+    case throttled
     case notAuthorised
     /// 400 from _apply_completion — the tick will never be accepted.
     case rejected(String)
     case offline
     case server(Int)
+    /// A provider identity with no account yet: ask the four questions, then
+    /// sign in again with the answers. Google's carries the signed identity.
+    case needsOnboarding(pending: String?)
+    /// Someone new while payments are on -- the app cannot create accounts.
+    case noAccount
+    /// Their provider's address already belongs to a password account.
+    case emailInUse
+}
+
+/// The body of a refused provider sign-in: {"error": "...", "pending": "..."}.
+private struct AuthProblem: Decodable {
+    let error: String?
+    let pending: String?
 }
 
 /// Refuses redirects so login can read the Location header. URLSession would
@@ -45,11 +60,80 @@ actor APIClient {
             throw APIError.server(0)
         }
         let location = http.value(forHTTPHeaderField: "Location") ?? ""
-        guard (300..<400).contains(http.statusCode),
-              !location.contains("error=1"),
-              !location.contains("exists=1")
-        else {
+        // Every refusal sends the browser back to /login with a reason; only
+        // success goes anywhere else. Matching on the reasons missed slow=1.
+        guard (300..<400).contains(http.statusCode) else {
             throw APIError.badCredentials
+        }
+        if location.contains("/login") {
+            throw location.contains("slow=1")
+                ? APIError.throttled : APIError.badCredentials
+        }
+    }
+
+    // MARK: - Provider sign-in
+
+    func providers() async throws -> ProvidersInfo {
+        try await get("api/v1/auth/providers", query: nil)
+    }
+
+    func signInWithApple(identityToken: String, nonce: String,
+                         prefs: OnboardingPrefs?) async throws -> AuthResponse {
+        struct Body: Encodable {
+            let identityToken: String
+            let nonce: String
+            let prefs: OnboardingPrefs?
+        }
+        return try await postAuth("api/v1/auth/apple",
+                                  Body(identityToken: identityToken,
+                                       nonce: nonce, prefs: prefs))
+    }
+
+    func signInWithGoogle(handoff: String) async throws -> AuthResponse {
+        try await postAuth("api/v1/auth/google", ["handoff": handoff])
+    }
+
+    func signInWithGoogle(pending: String,
+                          prefs: OnboardingPrefs) async throws -> AuthResponse {
+        struct Body: Encodable {
+            let pending: String
+            let prefs: OnboardingPrefs
+        }
+        return try await postAuth("api/v1/auth/google",
+                                  Body(pending: pending, prefs: prefs))
+    }
+
+    /// Swaps the refresh token for a fresh ss_session cookie.
+    func refresh(_ token: String) async throws -> AuthResponse {
+        try await postAuth("api/v1/auth/refresh", ["refresh": token])
+    }
+
+    private func postAuth<B: Encodable>(_ path: String,
+                                        _ body: B) async throws -> AuthResponse {
+        var request = URLRequest(url: baseURL.appendingPathComponent(path))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSON.encoder.encode(body)
+        let (data, response) = try await perform(request, delegate: nil)
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.server(0)
+        }
+        let problem = try? JSON.decoder.decode(AuthProblem.self, from: data)
+        switch (http.statusCode, problem?.error) {
+        case (200..<300, _):
+            return try JSON.decoder.decode(AuthResponse.self, from: data)
+        case (409, "needs_onboarding"):
+            throw APIError.needsOnboarding(pending: problem?.pending)
+        case (409, "email_in_use"):
+            throw APIError.emailInUse
+        case (403, "no_account"):
+            throw APIError.noAccount
+        case (401, _):
+            throw APIError.notAuthorised
+        case (400, _):
+            throw APIError.rejected(Self.detail(from: data))
+        default:
+            throw APIError.server(http.statusCode)
         }
     }
 

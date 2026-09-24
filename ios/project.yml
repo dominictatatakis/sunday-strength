@@ -32,6 +32,10 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: "NO"
         INFOPLIST_FILE: SundayStrength/Info.plist
+        # Sign in with Apple. Enabling it on the App ID invalidated the
+        # provisioning profiles made before, so a release archive needs
+        # freshly generated ones.
+        CODE_SIGN_ENTITLEMENTS: SundayStrength/SundayStrength.entitlements
     info:
       path: SundayStrength/Info.plist
       properties:
@@ -41,6 +45,11 @@ targets:
         # No encryption beyond HTTPS/Keychain, which is exempt. Declaring it
         # here avoids the export-compliance prompt on every single upload.
         ITSAppUsesNonExemptEncryption: false
+        # Google sign-in returns through this scheme: the browser sheet opens
+        # the server's own /login/google and the server sends the phone back.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.sundaystrength.auth
+            CFBundleURLSchemes: [sundaystrength]
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

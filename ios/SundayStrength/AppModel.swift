@@ -7,6 +7,8 @@ final class AppModel {
     enum Phase: Equatable {
         case loading
         case signedOut(String?)     // optional error message
+        /// A provider sign-in with no account yet: the four questions.
+        case onboarding(Onboarding)
         case signedIn
     }
 
@@ -15,6 +17,9 @@ final class AppModel {
     private(set) var plan: Plan?
     private(set) var isOffline = false
     private(set) var isSaving = false
+    /// Which sign-in buttons to offer. Nil until the server has said, and a
+    /// provider it does not advertise gets no button at all.
+    private(set) var providers: ProvidersInfo?
     var errorMessage: String?
     var settingsError: String?
 
@@ -29,10 +34,34 @@ final class AppModel {
     /// Called on launch: sign in again from stored credentials, so the app
     /// opens on the plan rather than a login screen.
     func restore() async {
-        guard let stored = Keychain.load() else {
+        let refresh = Keychain.loadRefresh()
+        let stored = refresh == nil ? Keychain.load() : nil
+        guard refresh != nil || stored != nil else {
             phase = .signedOut(nil)
             return
         }
+        // The session cookie lasts 30 days, so try it first. Signing in again
+        // on every launch spent the server's sign-in allowance (8 per 15
+        // minutes) and locked out anyone who opened the app often.
+        do {
+            me = try await api.me()
+            phase = .signedIn
+            await loadPlan()
+            return
+        } catch APIError.notAuthorised {
+            // Expired: sign in again below.
+        } catch {
+            // Offline: trust the stored credentials and let the plan cache show.
+            phase = .signedIn
+            isOffline = true
+            await loadPlan()
+            return
+        }
+        if let refresh {
+            await restore(refresh: refresh)
+            return
+        }
+        guard let stored else { return }
         do {
             try await api.login(email: stored.email, password: stored.password)
             me = try await api.me()
@@ -41,6 +70,9 @@ final class AppModel {
         } catch APIError.badCredentials {
             Keychain.clear()
             phase = .signedOut("Your password has changed. Please sign in again.")
+        } catch APIError.throttled {
+            // The password is still right; the server just wants a pause.
+            phase = .signedOut("Too many attempts. Wait a few minutes and try again.")
         } catch {
             // Offline: trust the stored credentials and let the plan cache show.
             phase = .signedIn
@@ -59,11 +91,127 @@ final class AppModel {
             await loadPlan()
         } catch APIError.badCredentials {
             phase = .signedOut("That email and password didn't match an account.")
+        } catch APIError.throttled {
+            phase = .signedOut("Too many attempts. Wait a few minutes and try again.")
         } catch APIError.offline {
             phase = .signedOut("Can't reach Sunday Strength. Check your connection.")
         } catch {
             phase = .signedOut("Something went wrong. Please try again.")
         }
+    }
+
+    /// An Apple or Google account: no password, so the refresh token.
+    private func restore(refresh: String) async {
+        do {
+            let response = try await api.refresh(refresh)
+            Keychain.saveRefresh(response.refresh)
+            me = try await api.me()
+            phase = .signedIn
+            await loadPlan()
+        } catch APIError.notAuthorised {
+            Keychain.clear()
+            phase = .signedOut("Please sign in again.")
+        } catch {
+            // Offline: trust the stored token and let the plan cache show.
+            phase = .signedIn
+            isOffline = true
+            await loadPlan()
+        }
+    }
+
+    // MARK: - Apple and Google
+
+    func loadProviders() async {
+        providers = try? await api.providers()
+    }
+
+    func signInWithApple(identityToken: String, nonce: String) async {
+        await providerSignIn(.apple(identityToken: identityToken, nonce: nonce)) {
+            try await self.api.signInWithApple(identityToken: identityToken,
+                                               nonce: nonce, prefs: nil)
+        }
+    }
+
+    func signInWithGoogle() async {
+        let outcome: ProviderSignIn.GoogleOutcome
+        do {
+            outcome = try await ProviderSignIn.google(baseURL: AppConfig.baseURL)
+        } catch ProviderSignIn.Failure.cancelled {
+            return
+        } catch {
+            phase = .signedOut("Signing in with Google didn't work. Try again.")
+            return
+        }
+        switch outcome {
+        case .handoff(let handoff):
+            await providerSignIn(nil) {
+                try await self.api.signInWithGoogle(handoff: handoff)
+            }
+        case .needsOnboarding(let pending):
+            await askOnboarding(.google(pending: pending))
+        }
+    }
+
+    /// Sends the four answers with the credential that is waiting on them.
+    func finishOnboarding(_ prefs: OnboardingPrefs) async {
+        guard case .onboarding(let onboarding) = phase else { return }
+        await providerSignIn(nil) {
+            switch onboarding.pending {
+            case .apple(let token, let nonce):
+                return try await self.api.signInWithApple(
+                    identityToken: token, nonce: nonce, prefs: prefs)
+            case .google(let pending):
+                return try await self.api.signInWithGoogle(
+                    pending: pending, prefs: prefs)
+            }
+        }
+    }
+
+    func cancelOnboarding() {
+        phase = .signedOut(nil)
+    }
+
+    /// `resume` is what to come back to if the server wants the four
+    /// questions answered first.
+    private func providerSignIn(_ resume: PendingSignIn?,
+                                _ call: () async throws -> AuthResponse) async {
+        phase = .loading
+        do {
+            let response = try await call()
+            Keychain.saveRefresh(response.refresh)
+            me = try await api.me()
+            phase = .signedIn
+            await loadPlan()
+        } catch APIError.needsOnboarding(let pending) {
+            if let pending {
+                await askOnboarding(.google(pending: pending))
+            } else if let resume {
+                await askOnboarding(resume)
+            } else {
+                phase = .signedOut("Something went wrong. Please try again.")
+            }
+        } catch APIError.noAccount {
+            phase = .signedOut("There's no Sunday Strength account for that sign-in.")
+        } catch APIError.emailInUse {
+            phase = .signedOut("That email already has an account. Sign in with your password.")
+        } catch APIError.notAuthorised {
+            // Apple's token lasts ten minutes; a long pause on the questions
+            // outlives it.
+            phase = .signedOut("That sign-in didn't work. Please try again.")
+        } catch APIError.offline {
+            phase = .signedOut("Can't reach Sunday Strength. Check your connection.")
+        } catch {
+            phase = .signedOut("Something went wrong. Please try again.")
+        }
+    }
+
+    private func askOnboarding(_ pending: PendingSignIn) async {
+        if providers == nil { await loadProviders() }
+        guard let options = providers?.options else {
+            phase = .signedOut("Can't reach Sunday Strength. Check your connection.")
+            return
+        }
+        phase = .onboarding(Onboarding(pending: pending, options: options))
     }
 
     func signOut() {

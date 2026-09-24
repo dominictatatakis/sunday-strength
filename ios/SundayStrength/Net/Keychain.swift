@@ -4,8 +4,13 @@ import Security
 /// The password is stored, not just the session cookie, because the API has no
 /// refresh token: when the 30-day ss_session cookie expires the client signs in
 /// again silently rather than interrupting someone mid-set.
+///
+/// An account made with Apple or Google has no password, so for those the
+/// server's refresh token is stored instead. Only one of the two is ever
+/// held: saving either clears both first.
 enum Keychain {
     private static let service = "com.sundaystrength.app.credentials"
+    private static let refreshService = "com.sundaystrength.app.refresh"
 
     struct Credentials: Equatable {
         let email: String
@@ -52,11 +57,43 @@ enum Keychain {
                            password: String(decoding: data, as: UTF8.self))
     }
 
-    static func clear() {
+    @discardableResult
+    static func saveRefresh(_ token: String) -> OSStatus {
+        clear()
+        let attributes: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: refreshService,
+            kSecAttrAccount as String: "refresh",
+            kSecValueData as String: Data(token.utf8),
+            // As for the password: readable after first unlock for background
+            // refresh, and never restored onto another device.
+            kSecAttrAccessible as String:
+                kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+        ]
+        return SecItemAdd(attributes as CFDictionary, nil)
+    }
+
+    static func loadRefresh() -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
+            kSecAttrService as String: refreshService,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecReturnData as String: true,
         ]
-        SecItemDelete(query as CFDictionary)
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+              let data = item as? Data, !data.isEmpty
+        else { return nil }
+        return String(decoding: data, as: UTF8.self)
+    }
+
+    static func clear() {
+        for svc in [service, refreshService] {
+            let query: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: svc,
+            ]
+            SecItemDelete(query as CFDictionary)
+        }
     }
 }

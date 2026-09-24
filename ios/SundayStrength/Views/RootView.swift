@@ -9,6 +9,8 @@ struct RootView: View {
             ProgressView()
         case .signedOut(let error):
             LoginView(error: error)
+        case .onboarding(let onboarding):
+            OnboardingView(onboarding: onboarding)
         case .signedIn:
             TabView {
                 PlanView()
