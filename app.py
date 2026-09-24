@@ -993,6 +993,11 @@ def terms(request: Request):
     return templates.TemplateResponse(request, "terms.html", {})
 
 
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy(request: Request):
+    return templates.TemplateResponse(request, "privacy.html", {})
+
+
 @app.get("/health")
 def health():
     """For uptime monitors: verifies the app AND its database connection."""

@@ -322,3 +322,14 @@ import urllib.parse  # noqa: E402
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PrivacyPage(Base):
+    """Google's consent screen and the App Store both link to it."""
+
+    def test_privacy_is_served_and_linked_from_the_landing_page(self):
+        r = self.client.get("/privacy")
+        self.assertEqual(r.status_code, 200)
+        for said in ("Supabase", "Brevo", "Apple", "Google", "Stripe"):
+            self.assertIn(said, r.text)
+        self.assertIn('href="/privacy"', self.client.get("/").text)
