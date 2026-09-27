@@ -1,26 +1,21 @@
 # Sunday Strength for iOS
 
-A native SwiftUI client for the same account as the website. Shows this week's
-plan, logs completed sets, and edits your preferences — working offline in a
-gym.
+A SwiftUI iPhone app for the same account as the website. It shows this week's plan, logs sets, edits
+preferences, and keeps working with no signal. The progress tab is not built yet. No third-party
+dependencies.
 
-Steps 1 and 3 of `docs/superpowers/specs/2026-09-09-ios-app-design.md`. Step 2,
-the progress tab, is not built. Everything but the settings tab runs on
-endpoints that already existed; settings added `PATCH /api/v1/me`.
+## Run it
 
-## Running it
-
-The app talks to a local server in Debug builds. Start one against a throwaway
-database, with the email providers cleared so nothing can reach a real
-subscriber:
+Debug builds talk to a local server. Start one on a throwaway database with the email providers
+cleared, so nothing can reach a real subscriber:
 
 ```bash
 DB_PATH=/tmp/ios-test.db BREVO_API_KEY= RESEND_API_KEY= GMAIL_USER= \
   STRIPE_SECRET_KEY= .venv/bin/uvicorn app:app --port 8123
 ```
 
-Create an account to sign in with (instant, no payment, because
-`STRIPE_SECRET_KEY` is unset and the app is in `DEV_MODE`):
+Create an account to sign in with. It activates instantly because Stripe is off. The field is `days`,
+not `days_per_week`:
 
 ```bash
 curl -X POST http://localhost:8123/subscribe \
@@ -28,18 +23,8 @@ curl -X POST http://localhost:8123/subscribe \
   -d "days=4" -d "experience=intermediate" -d "equipment=full"
 ```
 
-Note the field is `days`, not `days_per_week`.
-
-Then:
-
-```bash
-cd ios
-xcodegen generate          # after editing project.yml or adding any file
-open SundayStrength.xcodeproj
-```
-
-Point the app somewhere else with the `SS_BASE_URL` environment variable in the
-scheme's run arguments.
+Then `cd ios && xcodegen generate && open SundayStrength.xcodeproj`. To use a different server, set
+`SS_BASE_URL` in the scheme's environment.
 
 ## Tests
 
@@ -49,61 +34,41 @@ cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
   -derivedDataPath /tmp/ss-ios-build test
 ```
 
-Two things about that command are load-bearing:
+- **`-derivedDataPath` must be outside the repo.** The checkout is in a synced folder that stamps
+  Finder information onto build output, and `codesign` then rejects the bundle.
+- **Don't add `-sdk iphonesimulator`.** Alongside `-destination` it matches nothing.
+- **Run `xcodegen generate` after adding any file**, and edit `project.yml`, not the `.xcodeproj`. A
+  file missing from the project is not compiled, and the run still reports `TEST SUCCEEDED`.
+- UI tests skip themselves when the local server isn't running, except `OfflineUITests`, which needs it
+  stopped.
 
-- **`-derivedDataPath` must be outside the repo.** This checkout sits in a
-  file-provider-synced folder, which stamps `com.apple.FinderInfo` onto build
-  output; `codesign` then rejects the bundle as "resource fork, Finder
-  information, or similar detritus not allowed".
-- **No `-sdk iphonesimulator`.** Passing it alongside `-destination` empties
-  the scheme's supported platforms and nothing will match.
+## Sign-in
 
-Run `xcodegen generate` after adding any file. The project holds an explicit
-file list, so a new test file is simply not compiled until you do — and the run
-reports `TEST SUCCEEDED` while silently skipping it.
+- **Password:** the app posts to `/login` as the website's form does, and the `ss_session` cookie it
+  gets back (valid 30 days) authenticates every `/api/v1` call. Right and wrong passwords both return
+  `303`, so the app reads the `Location` header. The password is kept in the Keychain
+  (`AfterFirstUnlockThisDeviceOnly`, so it stays out of backups) to sign in again silently when the
+  cookie expires.
+- **Apple or Google:** `/api/v1/auth/apple` and `/api/v1/auth/google` return the same cookie plus a
+  refresh token (valid a year), which is kept instead of a password and exchanged at
+  `/api/v1/auth/refresh`. The phone never holds a Google credential. `/api/v1/auth/providers` says
+  which buttons to show.
 
-The UI tests need the local server; they skip themselves when there is none, so
-a plain test run stays green without one. `OfflineUITests` is the exception: it
-runs with the server deliberately stopped.
+## Preferences
 
-## Changing preferences
-
-`PATCH /api/v1/me` takes any subset of `days_per_week`, `experience`,
-`equipment` and `include_run`, and validates them exactly as `POST /account`
-does. The app sends only the fields that differ from the profile it holds — it
-may be an hour old, and resending all four would revert anything changed on the
-website meanwhile.
-
-Saving rebuilds the week, because those preferences are what `generate_plan` is
-given. Sets already logged against exercises that drop out stop being shown,
-which is what the account form already does.
-
-## How sign-in works
-
-There is no token endpoint. The app posts to `/login` exactly as the website's
-form does, and the `ss_session` cookie it returns authenticates every
-`/api/v1/*` call — `_api_sub` falls back to the cookie when there is no Bearer
-header (`app.py:583`).
-
-Both a right and a wrong password return `303`, so the client reads the
-`Location` header rather than following the redirect.
-
-The cookie lasts 30 days, so credentials are kept in the Keychain
-(`AfterFirstUnlockThisDeviceOnly`, which keeps them out of device backups) and
-the app signs in again silently on the first 401 rather than interrupting a
-workout.
+`PATCH /api/v1/me` takes any subset of `days_per_week`, `experience`, `equipment` and `include_run`,
+validated as `POST /account` does. The app sends only the fields that changed, so a profile an hour
+old can't undo an edit made on the website. Saving rebuilds the week.
 
 ## Structure
 
 | Path | What it owns |
 |---|---|
-| `project.yml` | Project definition. Edit this, not the `.xcodeproj`. |
-| `Net/APIClient.swift` | Every network call, and the error taxonomy. |
-| `Net/Keychain.swift` | Stored credentials. |
-| `Net/OfflineQueue.swift` | Ticks made without signal. |
-| `Net/PlanCache.swift` | Last plan seen, for offline launches. |
-| `AppModel.swift` | Auth state, the current plan, optimistic updates. |
-| `Views/SettingsView.swift` | Preferences. Sends only what changed. |
-| `Views/` | SwiftUI, no logic beyond formatting. |
-
-No third-party dependencies, matching the Python side's stdlib-first rule.
+| `project.yml` | The project definition |
+| `Net/APIClient.swift` | Every network call, and the error types |
+| `Net/Keychain.swift` | Stored password or refresh token |
+| `Net/OfflineQueue.swift` | Ticks made without signal |
+| `Net/PlanCache.swift` | The last plan seen, for offline launches |
+| `Net/ProviderSignIn.swift` | Apple and Google sign-in |
+| `AppModel.swift` | Sign-in state, the current plan, optimistic updates |
+| `Views/` | SwiftUI, with no logic beyond formatting |
