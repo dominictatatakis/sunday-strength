@@ -14,8 +14,7 @@ DB_PATH=/tmp/ios-test.db BREVO_API_KEY= RESEND_API_KEY= GMAIL_USER= \
   STRIPE_SECRET_KEY= .venv/bin/uvicorn --app-dir server app:app --port 8123
 ```
 
-Create an account to sign in with. It activates instantly because Stripe is off. The field is `days`,
-not `days_per_week`:
+Create an account to sign in with. The field is `days`, not `days_per_week`:
 
 ```bash
 curl -X POST http://localhost:8123/subscribe \

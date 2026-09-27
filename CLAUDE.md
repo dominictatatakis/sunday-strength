@@ -32,8 +32,7 @@ the wrong exercise.
 - **`/subscribe` refuses an email that already has an account.** Otherwise it would reset that
   account's password with nothing but the address.
 - **`_resolve_identity` alone decides who a Google or Apple sign-in belongs to.** It links to an
-  existing account only when the provider has verified the address and it is not a relay address. The
-  app never creates accounts while billing is on, because it cannot take payment (App Store 3.1.1).
+  existing account only when the provider has verified the address and it is not a relay address.
 - **Cancellation happens on POST, never GET.** Mail clients and security scanners follow links.
 - **`SECRET_KEY` never gets a fixed default.** Unset means a random per-process key and a warning.
 - **`_apply_completion` is the one place a tick is validated and written.** The JSON API, the browser
@@ -64,11 +63,6 @@ After adding an exercise, run `server/scripts/fetch_exercise_media.py` and **rea
 Fuzzy matching has offered "Pin Presses" for the pike push-up and served "Kettlebell Windmill" photos
 for the kettlebell swing. With no good match, set the alias to `None` and add an `EXTRA` entry. Never
 scrape StrengthLog, and never embed YouTube.
-
-## Money and legals
-
-Billing is off until `STRIPE_SECRET_KEY` is set and `BILLING_ENABLED` is not `0`. `SCALING.md` (local,
-not committed) holds the pre-revenue checklist. Don't advise beyond it.
 
 ## Style
 

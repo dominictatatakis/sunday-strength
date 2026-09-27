@@ -1,9 +1,11 @@
 # Sunday Strength
 
-Your gym week in your inbox every Sunday evening. Subscribers choose 2–5 training days, their
-experience level, their equipment (full gym, dumbbells or bodyweight) and an optional run day. A
-deterministic engine builds the week and a Sunday job emails it. Subscribers can also log sets on a
-plan page, through a JSON API, or in the iPhone app.
+I built this as a side project to get myself back to the gym without having to think about which
+exercises to do. Every Sunday evening, the coming week's workouts arrive by email.
+
+Subscribers choose 2–5 training days, their experience level, their equipment (full gym, dumbbells
+or bodyweight) and an optional run day, and a deterministic engine builds the week from those. They
+can also log sets on a plan page, through a JSON API, or in the iPhone app.
 
 FastAPI, Jinja templates and hand-written CSS, with no JavaScript build step. SQLite locally,
 Postgres (Supabase) in production.
@@ -20,7 +22,7 @@ render.yaml    Render's deploy settings
 | In `server/` | What it does |
 |---|---|
 | `engine.py` | Exercise pools, plan generation and swaps |
-| `app.py` | Every route: signup, Stripe, accounts and sign-in, the plan page, exercise pages, the JSON API |
+| `app.py` | Every route: signup, accounts and sign-in, the plan page, exercise pages, the JSON API |
 | `db.py` | Schema, migrations, queries, signed tokens, password and API-key hashing |
 | `providers.py` | Checks Google and Apple sign-in tokens |
 | `ratelimit.py` | Limits sign-in and signup attempts |
@@ -28,7 +30,7 @@ render.yaml    Render's deploy settings
 | `progress.py` | Progress maths (estimated one-rep max, trends). Not shown in the app yet |
 | `envfile.py` | Loads `server/.env` |
 | `templates/`, `static/` | Pages and emails; CSS and exercise media |
-| `scripts/` | Stripe product setup; fetching exercise photos and instructions |
+| `scripts/` | One-off scripts, such as fetching exercise photos and instructions |
 | `tests/` | The Python tests |
 
 ## Run it locally
@@ -44,7 +46,7 @@ DB_PATH=/tmp/test.db BREVO_API_KEY= RESEND_API_KEY= GMAIL_USER= \
 
 Settings go in `server/.env` (start from `server/.env.example`). Clear the email keys as shown
 whenever that file exists: it holds live credentials, and the app would otherwise email real
-subscribers. Without Stripe keys, signups activate straight away without payment.
+subscribers.
 
 - `.venv/bin/python server/send_weekly.py --dry-run` prints this week's emails instead of sending them.
 - `python3 server/engine.py --days 4 --level beginner --equipment bodyweight` previews a plan.
@@ -56,13 +58,6 @@ subscribers. Without Stripe keys, signups activate straight away without payment
 ```
 
 The tests use throwaway databases and never send email. For the iOS tests, see `ios/README.md`.
-
-## Billing
-
-Stripe, at £5/month or £12/quarter. Billing stays off, and signups are free ("Free while in beta"),
-unless `STRIPE_SECRET_KEY` is set and `BILLING_ENABLED` is not `0`. `server/scripts/stripe_setup.py`
-creates the product and prices. The webhook endpoint is `/stripe/webhook`, for
-`checkout.session.completed`, `customer.subscription.deleted` and `invoice.payment_failed`.
 
 ## Deploy
 
@@ -111,12 +106,10 @@ The iPhone app also uses the `/api/v1/auth/*` sign-in routes. `/docs` is off unl
 
 Photos and instructions come from [free-exercise-db](https://github.com/yuhonas/free-exercise-db),
 which is public domain. Exercise pages link out to a YouTube search rather than embedding videos,
-since embedding them in a paid product goes against YouTube's terms. StrengthLog's content is
-copyrighted and not used.
+to stay within YouTube's terms. StrengthLog's content is copyrighted and not used.
 
 ## Not built yet
 
 - Password reset (for now, subscribers reply to any email)
 - A progress page, using `server/progress.py`
 - Superset pairing, and progression hints for advanced lifters
-- A free two-week trial through Stripe's `trial_period_days`
