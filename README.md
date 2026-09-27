@@ -8,37 +8,51 @@ plan page, through a JSON API, or in the iPhone app.
 FastAPI, Jinja templates and hand-written CSS, with no JavaScript build step. SQLite locally,
 Postgres (Supabase) in production.
 
-## Files
+## Layout
 
-| File | What it does |
+```
+server/        the website, JSON API and emails (Python, runs on Render)
+ios/           the iPhone app (see ios/README.md)
+.github/       the job that triggers the Sunday send
+render.yaml    Render's deploy settings
+```
+
+| In `server/` | What it does |
 |---|---|
-| `engine.py` | Exercise pools, plan generation and swaps. Preview any plan with `python3 engine.py --days 4 --level beginner --equipment bodyweight` |
+| `engine.py` | Exercise pools, plan generation and swaps |
 | `app.py` | Every route: signup, Stripe, accounts and sign-in, the plan page, exercise pages, the JSON API |
 | `db.py` | Schema, migrations, queries, signed tokens, password and API-key hashing |
 | `providers.py` | Checks Google and Apple sign-in tokens |
 | `ratelimit.py` | Limits sign-in and signup attempts |
 | `emails.py`, `send_weekly.py`, `mailer.py` | Render, schedule and deliver the emails |
 | `progress.py` | Progress maths (estimated one-rep max, trends). Not shown in the app yet |
+| `envfile.py` | Loads `server/.env` |
+| `templates/`, `static/` | Pages and emails; CSS and exercise media |
 | `scripts/` | Stripe product setup; fetching exercise photos and instructions |
-| `ios/` | The iPhone app. See [`ios/README.md`](ios/README.md) |
+| `tests/` | The Python tests |
 
 ## Run it locally
 
+From the repository root:
+
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python scripts/fetch_exercise_media.py   # exercise photos and instructions
+python3 -m venv .venv && .venv/bin/pip install -r server/requirements.txt
+.venv/bin/python server/scripts/fetch_exercise_media.py   # exercise photos and instructions
 DB_PATH=/tmp/test.db BREVO_API_KEY= RESEND_API_KEY= GMAIL_USER= \
-  .venv/bin/uvicorn app:app --reload --port 8000
+  .venv/bin/uvicorn --app-dir server app:app --reload --port 8000
 ```
 
-Clear the email keys as shown whenever a `.env` is present: it holds live credentials, and the app
-would otherwise email real subscribers. Without Stripe keys, signups activate straight away without
-payment. `.venv/bin/python send_weekly.py --dry-run` prints this week's emails instead of sending them.
+Settings go in `server/.env` (start from `server/.env.example`). Clear the email keys as shown
+whenever that file exists: it holds live credentials, and the app would otherwise email real
+subscribers. Without Stripe keys, signups activate straight away without payment.
+
+- `.venv/bin/python server/send_weekly.py --dry-run` prints this week's emails instead of sending them.
+- `python3 server/engine.py --days 4 --level beginner --equipment bodyweight` previews a plan.
 
 ## Tests
 
 ```bash
-.venv/bin/python -m unittest discover
+.venv/bin/python -m unittest discover -s server/tests -t server
 ```
 
 The tests use throwaway databases and never send email. For the iOS tests, see `ios/README.md`.
@@ -46,15 +60,15 @@ The tests use throwaway databases and never send email. For the iOS tests, see `
 ## Billing
 
 Stripe, at £5/month or £12/quarter. Billing stays off, and signups are free ("Free while in beta"),
-unless `STRIPE_SECRET_KEY` is set and `BILLING_ENABLED` is not `0`. `scripts/stripe_setup.py` creates
-the product and prices. The webhook endpoint is `/stripe/webhook`, for `checkout.session.completed`,
-`customer.subscription.deleted` and `invoice.payment_failed`.
+unless `STRIPE_SECRET_KEY` is set and `BILLING_ENABLED` is not `0`. `server/scripts/stripe_setup.py`
+creates the product and prices. The webhook endpoint is `/stripe/webhook`, for
+`checkout.session.completed`, `customer.subscription.deleted` and `invoice.payment_failed`.
 
 ## Deploy
 
 - **Render** runs the app on its free tier: New → Blueprint → this repo, which reads `render.yaml`.
-  Free instances sleep after about 15 minutes idle, so the first request after that takes about 30
-  seconds.
+  That file points Render at `server/`. Free instances sleep after about 15 minutes idle, so the
+  first request after that takes about 30 seconds.
 - **Supabase** holds the data. Set `DATABASE_URL` to the session pooler connection string and `db.py`
   switches from SQLite to Postgres. Migrations run on boot.
 - **GitHub Actions** triggers the send every Sunday at 17:00 UTC
@@ -67,7 +81,7 @@ the product and prices. The webhook endpoint is `/stripe/webhook`, for `checkout
   The redirect URI is `<APP_BASE_URL>/auth/google`. Apple sign-in, in the iPhone app, uses
   `APPLE_BUNDLE_ID`.
 
-`.env.example` lists the main settings.
+`server/.env.example` lists the main settings.
 
 ## JSON API
 
@@ -103,6 +117,6 @@ copyrighted and not used.
 ## Not built yet
 
 - Password reset (for now, subscribers reply to any email)
-- A progress page, using `progress.py`
+- A progress page, using `server/progress.py`
 - Superset pairing, and progression hints for advanced lifters
 - A free two-week trial through Stripe's `trial_period_days`

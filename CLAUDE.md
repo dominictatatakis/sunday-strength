@@ -1,18 +1,19 @@
 # Sunday Strength — agent notes
 
 Read `README.md` for what this is and how it is deployed. This file covers what will trip you up.
+The Python app lives in `server/`; run the commands below from the repository root.
 
 ## Running things safely
 
-`.env` holds live credentials. Before running anything that could send email, clear the providers
+`server/.env` holds live credentials. Before running anything that could send email, clear the providers
 and use a throwaway database. Never point anything at `gymdigest.db`.
 
 ```bash
 DB_PATH=/tmp/test.db BREVO_API_KEY= RESEND_API_KEY= GMAIL_USER= \
-  .venv/bin/uvicorn app:app --port 8123
+  .venv/bin/uvicorn --app-dir server app:app --port 8123
 ```
 
-Tests: `.venv/bin/python -m unittest discover`. They are safe to run (throwaway databases, email keys
+Tests: `.venv/bin/python -m unittest discover -s server/tests -t server`. They are safe to run (throwaway databases, email keys
 cleared) but don't cover everything. Also run the app and drive the real flow: several bugs here only
 showed up that way, such as a floated badge colliding with a row and a fuzzy match shipping photos of
 the wrong exercise.
@@ -59,7 +60,7 @@ the wrong exercise.
 
 ## Exercise media
 
-After adding an exercise, run `scripts/fetch_exercise_media.py` and **read the `fuzzy:` lines**.
+After adding an exercise, run `server/scripts/fetch_exercise_media.py` and **read the `fuzzy:` lines**.
 Fuzzy matching has offered "Pin Presses" for the pike push-up and served "Kettlebell Windmill" photos
 for the kettlebell swing. With no good match, set the alias to `None` and add an `EXTRA` entry. Never
 scrape StrengthLog, and never embed YouTube.

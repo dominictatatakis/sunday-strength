@@ -2,8 +2,8 @@
 *.db
 __pycache__/
 .venv/
-static/exercises/*.jpg
-static/exdb.json
+server/static/exercises/*.jpg
+server/static/exdb.json
 .superpowers/
 ios/build/
 ios/DerivedData/

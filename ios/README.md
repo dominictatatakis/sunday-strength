@@ -6,12 +6,12 @@ dependencies.
 
 ## Run it
 
-Debug builds talk to a local server. Start one on a throwaway database with the email providers
-cleared, so nothing can reach a real subscriber:
+Debug builds talk to a local server. From the repository root, start one on a throwaway database
+with the email providers cleared, so nothing can reach a real subscriber:
 
 ```bash
 DB_PATH=/tmp/ios-test.db BREVO_API_KEY= RESEND_API_KEY= GMAIL_USER= \
-  STRIPE_SECRET_KEY= .venv/bin/uvicorn app:app --port 8123
+  STRIPE_SECRET_KEY= .venv/bin/uvicorn --app-dir server app:app --port 8123
 ```
 
 Create an account to sign in with. It activates instantly because Stripe is off. The field is `days`,
