@@ -677,9 +677,18 @@ def _current_sub(request: Request):
     return db.get_by_email(db.connect(), email)
 
 
-def _plan_for(sub, week: int) -> dict:
-    return engine.generate_plan(week, sub["days_per_week"], sub["experience"],
-                                bool(sub["include_run"]), db.sub_equipment(sub))
+def _plan_for(sub, year: int, week: int) -> dict:
+    """The week generate_plan builds, with the days the subscriber rearranged
+    put over it. Everything that shows or checks a plan comes through here,
+    so the app, the plan page and the tick check see the same week. The
+    Sunday email doesn't: it goes out before that week can be edited.
+    """
+    equipment = db.sub_equipment(sub)
+    plan = engine.generate_plan(week, sub["days_per_week"], sub["experience"],
+                                bool(sub["include_run"]), equipment)
+    edited = db.day_plans_for_week(db.connect(), sub["id"],
+                                   db.week_key(year, week))
+    return engine.apply_day_edits(plan, edited, sub["experience"], equipment)
 
 
 def _last_label(log: dict) -> str:
@@ -700,7 +709,7 @@ def _last_label(log: dict) -> str:
 def _this_week_plan(sub) -> tuple[int, str, dict]:
     """(ISO week, storage key, plan) for the week the subscriber is in now."""
     year, week = datetime.date.today().isocalendar()[:2]
-    return week, db.week_key(year, week), _plan_for(sub, week)
+    return week, db.week_key(year, week), _plan_for(sub, year, week)
 
 
 @app.get("/exercises", response_class=HTMLResponse)
@@ -916,16 +925,18 @@ def api_update_me(request: Request, body: PrefsIn):
     return _me_payload(db.get_by_email(conn, sub["email"]))
 
 
-@app.get("/api/v1/plan")
-def api_plan(request: Request, week: str | None = None):
-    """This week's plan (or ?week=2026-W30) with what's already been done."""
-    conn, sub = _require_sub(request)
+def _year_week(week: str | None) -> tuple[int, int]:
+    """'2026-W30' as (year, week), or this week when none is given."""
     if week:
-        year, iso_week = _week_from_key(week)
-    else:
-        year, iso_week = datetime.date.today().isocalendar()[:2]
+        return _week_from_key(week)
+    year, iso_week = datetime.date.today().isocalendar()[:2]
+    return year, iso_week
+
+
+def _plan_payload(conn, sub, year: int, iso_week: int) -> dict:
+    """A week's plan with what has been logged against it."""
     key = db.week_key(year, iso_week)
-    plan = _plan_for(sub, iso_week)
+    plan = _plan_for(sub, year, iso_week)
     logged = db.completions_for_week(conn, sub["id"], key)
     for i, day in enumerate(plan["days"], start=1):
         day["day"] = i
@@ -940,6 +951,13 @@ def api_plan(request: Request, week: str | None = None):
     return plan
 
 
+@app.get("/api/v1/plan")
+def api_plan(request: Request, week: str | None = None):
+    """This week's plan (or ?week=2026-W30) with what's already been done."""
+    conn, sub = _require_sub(request)
+    return _plan_payload(conn, sub, *_year_week(week))
+
+
 def _apply_completion(conn, sub, week: str | None, day: int, slug: str,
                       done: bool, weight_kg: float | None,
                       reps: int | None, sets: int | None = None) -> str:
@@ -948,15 +966,12 @@ def _apply_completion(conn, sub, week: str | None, day: int, slug: str,
     Shared by the JSON API and the plain-form fallback so both paths behave
     identically. Returns the week key that was written.
     """
-    if week:
-        year, iso_week = _week_from_key(week)
-    else:
-        year, iso_week = datetime.date.today().isocalendar()[:2]
+    year, iso_week = _year_week(week)
     key = db.week_key(year, iso_week)
 
     # Only accept slots that exist in that week's plan, so the table can't
     # fill up with exercises the subscriber was never given.
-    days = _plan_for(sub, iso_week)["days"]
+    days = _plan_for(sub, year, iso_week)["days"]
     if not 1 <= day <= len(days):
         raise HTTPException(400, f"That week has days 1-{len(days)}.")
     if slug not in {ex["slug"] for ex in days[day - 1]["exercises"]}:
