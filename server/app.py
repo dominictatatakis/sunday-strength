@@ -794,14 +794,19 @@ def my_plan(request: Request, saved: str = ""):
     })
 
 
+def _youtube_search(name: str) -> str:
+    # A search rather than an embed keeps within YouTube's terms.
+    return ("https://www.youtube.com/results?search_query="
+            + urllib.parse.quote_plus(f"{name} form how to"))
+
+
 @app.get("/exercise/{slug}", response_class=HTMLResponse)
 def exercise_page(request: Request, slug: str):
     if slug not in engine.all_slugs():
         raise HTTPException(404, "Unknown exercise.")
     meta = EXDB.get(slug, {})
     name = meta.get("name") or engine.SLUG_NAMES.get(slug) or slug.replace("-", " ").capitalize()
-    yt = ("https://www.youtube.com/results?search_query="
-          + urllib.parse.quote_plus(f"{name} form how to"))
+    yt = _youtube_search(name)
     # Swaps are filtered to the signed-in member's kit; visitors see them all.
     sub = _current_sub(request)
     equipment = db.sub_equipment(sub) if sub else "full"
@@ -843,6 +848,14 @@ class CompletionIn(BaseModel):
     reps: int | None = None                 # per set, not the total
     weight_kg: float | None = None          # per dumbbell, not the pair
     done: bool = True                       # false deletes the entry
+
+
+class DayIn(BaseModel):
+    slugs: list[str]                        # the whole day, in order
+    week: str | None = None                 # '2026-W40'; defaults to now
+
+
+MAX_DAY_EXERCISES = 12
 
 
 def _api_sub(request: Request):
@@ -1001,6 +1014,63 @@ def api_completions(request: Request, limit: int = 200):
     conn, sub = _require_sub(request)
     return {"completions": db.recent_completions(
         conn, sub["id"], max(1, min(limit, 1000)))}
+
+
+@app.put("/api/v1/plan/days/{day}")
+def api_set_day(request: Request, day: int, body: DayIn):
+    """Make one day of a week these exercises, in this order.
+
+    The whole day rather than a change to it, so a phone replaying edits it
+    made without signal can send one twice and nothing doubles up.
+    """
+    conn, sub = _require_sub(request)
+    year, iso_week = _year_week(body.week)
+    days = len(_plan_for(sub, year, iso_week)["days"])
+    if not 1 <= day <= days:
+        raise HTTPException(400, f"That week has days 1-{days}.")
+    if len(body.slugs) > MAX_DAY_EXERCISES:
+        raise HTTPException(
+            400, f"A day holds at most {MAX_DAY_EXERCISES} exercises.")
+    if len(set(body.slugs)) != len(body.slugs):
+        raise HTTPException(400, "Each exercise can only be in a day once.")
+    kit = engine.EQUIPMENT_RANK[db.sub_equipment(sub)]
+    for slug in body.slugs:
+        if slug not in engine.SLUG_EQUIPMENT:
+            raise HTTPException(400, f"There's no exercise called {slug}.")
+        if engine.EQUIPMENT_RANK[engine.SLUG_EQUIPMENT[slug]] > kit:
+            raise HTTPException(400, f"{engine.SLUG_NAMES[slug]} needs more "
+                                     "equipment than your settings allow.")
+    db.set_day_plan(conn, sub["id"], db.week_key(year, iso_week), day,
+                    body.slugs)
+    return _plan_payload(conn, sub, year, iso_week)
+
+
+@app.delete("/api/v1/plan/days/{day}")
+def api_reset_day(request: Request, day: int, week: str | None = None):
+    """Put a day back as generated. Harmless if it never changed."""
+    conn, sub = _require_sub(request)
+    year, iso_week = _year_week(week)
+    db.clear_day_plan(conn, sub["id"], db.week_key(year, iso_week), day)
+    return _plan_payload(conn, sub, year, iso_week)
+
+
+@app.get("/api/v1/exercises")
+def api_exercises(request: Request):
+    """Every exercise the kit allows, with its how-to, in one response.
+
+    One call rather than one per exercise: the phone keeps the lot for the
+    gym, where there is often no signal when a how-to is wanted.
+    """
+    _conn, sub = _require_sub(request)
+    out = []
+    for ex in engine.library_for(sub["experience"], db.sub_equipment(sub)):
+        meta = EXDB.get(ex["slug"], {})
+        out.append({**ex,
+                    "instructions": meta.get("instructions", []),
+                    "images": [f"/static/exercises/{img}"
+                               for img in meta.get("images", [])],
+                    "youtube_url": _youtube_search(ex["name"])})
+    return {"exercises": out}
 
 
 @app.get("/terms", response_class=HTMLResponse)

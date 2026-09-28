@@ -1,5 +1,6 @@
 """Days a subscriber rearranges: storage, the plan they change, the API."""
 import unittest
+from unittest import mock
 
 from tests.dbhelp import db, fresh_db
 
@@ -156,3 +157,105 @@ class Overlay(ApiBase):
         self.assertIn(hidden.format(new), after)
         self.assertEqual(after.count(hidden.format(removed)),
                          before.count(hidden.format(removed)) - 1)
+
+
+class Endpoints(ApiBase):
+    def put(self, day, slugs, **extra):
+        return self.client.put(f"/api/v1/plan/days/{day}", headers=self.auth,
+                               json={"slugs": slugs, **extra})
+
+    def test_put_saves_the_day_and_answers_with_the_week(self):
+        plan = self.plan()
+        want = [self.newcomer(plan)] + self.slugs(plan)[:2]
+        r = self.put(1, want)
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(self.slugs(r.json()), want)
+        self.assertEqual(r.json()["week_key"], self.week)
+        self.assertEqual(self.slugs(self.plan()), want)
+
+    def test_putting_the_same_day_twice_is_harmless(self):
+        want = self.slugs(self.plan())[:2]
+        self.put(1, want)
+        self.assertEqual(self.slugs(self.put(1, want).json()), want)
+
+    def test_an_empty_day_is_allowed(self):
+        r = self.put(2, [])
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(self.slugs(r.json(), 2), [])
+
+    def test_put_refuses_what_cannot_be_right(self):
+        plan = self.plan()
+        cases = {
+            "a day outside the week": self.put(5, []),
+            "day zero": self.put(0, []),
+            "an unknown exercise": self.put(1, ["moon-squat"]),
+            "a duplicate": self.put(1, [self.slugs(plan)[0]] * 2),
+            "more than 12": self.put(1, sorted(engine.all_slugs())[:13]),
+        }
+        for why, r in cases.items():
+            with self.subTest(why):
+                self.assertEqual(r.status_code, 400, r.text)
+                self.assertTrue(r.json()["detail"])
+
+    def test_delete_puts_the_generated_day_back(self):
+        plan = self.plan()
+        self.put(1, [])
+        r = self.client.delete(f"/api/v1/plan/days/1?week={self.week}",
+                               headers=self.auth)
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(self.slugs(r.json()), self.slugs(plan))
+        self.assertFalse(r.json()["days"][0]["edited"])
+
+    def test_deleting_a_day_never_edited_is_harmless(self):
+        r = self.client.delete("/api/v1/plan/days/3", headers=self.auth)
+        self.assertEqual(r.status_code, 200, r.text)
+
+    def test_needs_a_signed_in_subscriber(self):
+        self.assertEqual(self.client.put("/api/v1/plan/days/1",
+                                         json={"slugs": []}).status_code, 401)
+        self.assertEqual(self.client.delete("/api/v1/plan/days/1").status_code,
+                         401)
+        self.assertEqual(self.client.get("/api/v1/exercises").status_code, 401)
+
+    def test_changing_the_split_in_the_app_clears_edits(self):
+        self.put(1, [])
+        self.client.patch("/api/v1/me", headers=self.auth,
+                          json={"days_per_week": 3})
+        self.assertFalse(self.plan()["days"][0]["edited"])
+
+    def test_changing_only_the_level_keeps_them(self):
+        self.put(1, [])
+        self.client.patch("/api/v1/me", headers=self.auth,
+                          json={"experience": "advanced"})
+        self.assertTrue(self.plan()["days"][0]["edited"])
+
+
+class HomeKit(ApiBase):
+    kit = "bodyweight"
+
+    def test_put_refuses_kit_the_subscriber_lacks(self):
+        r = self.client.put("/api/v1/plan/days/1", headers=self.auth,
+                            json={"slugs": ["bench-press"]})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("equipment", r.json()["detail"])
+
+    def test_the_library_is_what_the_kit_allows_with_how_to(self):
+        fake = {"push-up": {"name": "Pushups", "instructions": ["Down.", "Up."],
+                            "images": ["push-up-0.jpg", "push-up-1.jpg"]}}
+        with mock.patch.dict(app_module.EXDB, fake, clear=True):
+            r = self.client.get("/api/v1/exercises", headers=self.auth)
+        self.assertEqual(r.status_code, 200, r.text)
+        lib = {e["slug"]: e for e in r.json()["exercises"]}
+        self.assertTrue(all(engine.SLUG_EQUIPMENT[s] == "bodyweight"
+                            for s in lib))
+        push = lib["push-up"]
+        self.assertEqual(push["instructions"], ["Down.", "Up."])
+        self.assertEqual(push["images"], ["/static/exercises/push-up-0.jpg",
+                                          "/static/exercises/push-up-1.jpg"])
+        self.assertTrue(push["youtube_url"].startswith(
+            "https://www.youtube.com/results?search_query="))
+        for key in ("name", "sets", "equipment", "part", "patterns",
+                    "alternatives"):
+            self.assertIn(key, push)
+        self.assertEqual(lib["plank"]["instructions"], [])
+        self.assertEqual(lib["plank"]["images"], [])

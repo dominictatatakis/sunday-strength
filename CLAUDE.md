@@ -22,7 +22,9 @@ the wrong exercise.
 
 - **Plans are deterministic.** `generate_plan(week, days, level, run, equipment)` must return the same
   plan for the same inputs, forever. The email, the plan page and the completion log each regenerate
-  it and must agree. No randomness, no "today", no database reads.
+  it and must agree. No randomness, no "today", no database reads. Days a subscriber rearranges live
+  in `day_plans` and go over the generated week in `app._plan_for`, which everything that shows or
+  checks a plan must use. Only the Sunday email calls `generate_plan` directly.
 - **Equipment tiers are cumulative:** `bodyweight < dumbbells < full`. Each exercise carries the
   minimum kit it needs, and every (pattern, level, tier) needs at least one option, or `generate_plan`
   raises. Adding a pattern or a level means checking all three tiers.

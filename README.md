@@ -84,12 +84,16 @@ Authenticate with the session cookie, or with `Authorization: Bearer ss_...` usi
 `/account`. Only a hash of the key is stored, and creating a new key revokes the old one.
 
 ```
-GET   /api/v1/me                     preferences, status and the valid options
-PATCH /api/v1/me                     change any subset of preferences
-GET   /api/v1/plan[?week=2026-W30]   the week's plan, with what has been logged
-POST  /api/v1/completions            {"day":1,"slug":"bench-press","sets":3,"reps":8,"weight_kg":60}
-                                     ("done": false removes the entry)
-GET   /api/v1/completions?limit=200  logged sets, newest first
+GET    /api/v1/me                     preferences, status and the valid options
+PATCH  /api/v1/me                     change any subset of preferences
+GET    /api/v1/plan[?week=2026-W30]   the week's plan, with what has been logged
+POST   /api/v1/completions            {"day":1,"slug":"bench-press","sets":3,"reps":8,"weight_kg":60}
+                                      ("done": false removes the entry)
+GET    /api/v1/completions?limit=200  logged sets, newest first
+PUT    /api/v1/plan/days/{day}        {"slugs":["goblet-squat","plank"]}: that day's exercises, in
+                                      order, for this week (or "week"); returns the plan
+DELETE /api/v1/plan/days/{day}        puts the day back as generated
+GET    /api/v1/exercises              the library your kit allows, with steps and photo paths
 ```
 
 The iPhone app also uses the `/api/v1/auth/*` sign-in routes. `/docs` is off unless `DEV_DOCS=1`.
