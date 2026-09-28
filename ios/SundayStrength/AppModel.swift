@@ -20,6 +20,9 @@ final class AppModel {
     /// Which sign-in buttons to offer. Nil until the server has said, and a
     /// provider it does not advertise gets no button at all.
     private(set) var providers: ProvidersInfo?
+    /// Every exercise the kit allows, for how-to screens, the picker, and
+    /// building a swapped-in row without waiting for the server.
+    private(set) var library: [LibraryExercise] = []
     var errorMessage: String?
     var settingsError: String?
 
@@ -218,6 +221,7 @@ final class AppModel {
         Keychain.clear()
         me = nil
         plan = nil
+        library = []
         phase = .signedOut(nil)
     }
 
@@ -287,6 +291,118 @@ final class AppModel {
                    revertTo: previous)
     }
 
+    func libraryEntry(_ slug: String) -> LibraryExercise? {
+        library.first { $0.slug == slug }
+    }
+
+    func swap(day: Int, replacing old: String, with new: String) async {
+        await changeDay(day) { slugs in
+            guard let i = slugs.firstIndex(of: old), !slugs.contains(new) else {
+                return
+            }
+            slugs[i] = new
+        }
+    }
+
+    func add(day: Int, slug: String) async {
+        await changeDay(day) { slugs in
+            if !slugs.contains(slug) { slugs.append(slug) }
+        }
+    }
+
+    func remove(day: Int, slug: String) async {
+        await changeDay(day) { $0.removeAll { $0 == slug } }
+    }
+
+    /// Back to the generated day. Works offline: the plan carries the
+    /// generated slugs, and the library the rows for any no longer shown.
+    func resetDay(_ day: Int) async {
+        guard let current = plan?.days.first(where: { $0.day == day }),
+              current.edited, let original = current.original,
+              let shown = show(day: day, slugs: original, edited: false)
+        else { return }
+        await sendDayChange(.resetDay(week: weekKey, day: day),
+                            previous: shown.previous, newcomers: shown.newcomers)
+    }
+
+    private func changeDay(_ day: Int, _ change: (inout [String]) -> Void) async {
+        guard let current = plan?.days.first(where: { $0.day == day }) else {
+            return
+        }
+        var slugs = current.exercises.map(\.slug)
+        change(&slugs)
+        guard slugs != current.exercises.map(\.slug),
+              let shown = show(day: day, slugs: slugs, edited: true)
+        else { return }
+        await sendDayChange(.setDay(DayBody(week: weekKey, day: day, slugs: slugs)),
+                            previous: shown.previous, newcomers: shown.newcomers)
+    }
+
+    /// Puts a day's new list on screen before the server has it. Rows already
+    /// there are kept, logs and all; only newcomers are built, from the
+    /// library. Changes nothing, and returns nil, if one isn't in it.
+    private func show(day: Int, slugs: [String], edited: Bool)
+        -> (previous: PlanDay, newcomers: Set<String>)? {
+        guard var plan, let d = plan.days.firstIndex(where: { $0.day == day })
+        else { return nil }
+        let previous = plan.days[d]
+        let existing = Dictionary(previous.exercises.map { ($0.slug, $0) },
+                                  uniquingKeysWith: { first, _ in first })
+        let rows = slugs.compactMap { existing[$0] ?? libraryEntry($0)?.planExercise }
+        guard rows.count == slugs.count else { return nil }
+        plan.days[d].exercises = rows
+        plan.days[d].edited = edited
+        if plan.days[d].original == nil && !previous.edited {
+            plan.days[d].original = previous.exercises.map(\.slug)
+        }
+        self.plan = plan
+        // Saved now, so a relaunch with no signal still shows the change the
+        // queue is holding.
+        PlanCache.save(plan)
+        return (previous, Set(slugs).subtracting(existing.keys))
+    }
+
+    private func sendDayChange(_ change: QueuedChange, previous: PlanDay,
+                               newcomers: Set<String>) async {
+        do {
+            if let server = try await apply(change)?.days
+                .first(where: { $0.day == previous.day }) {
+                adopt(server, newcomers: newcomers)
+            }
+            errorMessage = nil
+            isOffline = false
+        } catch APIError.rejected(let detail) {
+            // Never going to be accepted: put the day back and refetch.
+            put(previous)
+            errorMessage = detail
+            await loadPlan()
+        } catch APIError.notAuthorised {
+            // Kept for after signing in again, which replays the queue.
+            await queue.enqueue(change)
+            await restore()
+        } catch {
+            await queue.enqueue(change)
+            isOffline = true
+        }
+    }
+
+    /// Takes the server's copy of a day just changed; see PlanDay.adopting.
+    private func adopt(_ server: PlanDay, newcomers: Set<String>) {
+        guard var plan, let d = plan.days.firstIndex(where: { $0.day == server.day })
+        else { return }
+        plan.days[d] = plan.days[d].adopting(server, newcomers: newcomers)
+        self.plan = plan
+        PlanCache.save(plan)
+    }
+
+    private func put(_ day: PlanDay) {
+        guard var plan, let d = plan.days.firstIndex(where: { $0.day == day.day })
+        else { return }
+        plan.days[d] = day
+        self.plan = plan
+        PlanCache.save(plan)
+    }
+
     private func push(_ body: CompletionBody,
                       revertTo previous: PlanExercise?) async {
         do {
@@ -334,18 +450,22 @@ final class AppModel {
     }
 
     func loadPlan() async {
+        // Changes made offline go first, so the plan fetched after them
+        // already shows them.
+        await flushQueue()
         do {
             let fetched = try await api.plan(week: nil)
             plan = fetched
             PlanCache.save(fetched)
             isOffline = false
-            await flushQueue()
         } catch APIError.notAuthorised {
             await restore()
+            return
         } catch {
             if plan == nil { plan = PlanCache.load() }
             isOffline = true
         }
+        await loadLibrary()
     }
 
     /// Replays queued changes in the order they were made. A 400 means the
@@ -353,20 +473,48 @@ final class AppModel {
     func flushQueue() async {
         for change in await queue.pending() {
             do {
-                switch change {
-                case .tick(let body):
-                    try await api.setCompletion(body)
-                case .setDay(let body):
-                    _ = try await api.setDay(body)
-                case .resetDay(let week, let day):
-                    _ = try await api.resetDay(week: week, day: day)
-                }
+                _ = try await apply(change)
                 await queue.remove(change)
             } catch APIError.rejected {
                 await queue.remove(change)
             } catch {
                 break          // still offline; keep the rest for next time
             }
+        }
+    }
+
+    /// Sends one change. Day edits answer with the week.
+    private func apply(_ change: QueuedChange) async throws -> Plan? {
+        switch change {
+        case .tick(let body):
+            try await api.setCompletion(body)
+            return nil
+        case .setDay(let body):
+            return try await api.setDay(body)
+        case .resetDay(let week, let day):
+            return try await api.resetDay(week: week, day: day)
+        }
+    }
+
+    private func loadLibrary() async {
+        do {
+            let fetched = try await api.exercises()
+            library = fetched
+            LibraryCache.save(fetched)
+        } catch {
+            if library.isEmpty { library = LibraryCache.load() ?? [] }
+        }
+        prefetchPhotos()
+    }
+
+    /// This week's photos, fetched now so the how-to shows them without signal.
+    private func prefetchPhotos() {
+        guard let plan else { return }
+        let slugs = Set(plan.days.flatMap { $0.exercises.map(\.slug) })
+        let paths = library.filter { slugs.contains($0.slug) }.flatMap(\.images)
+        guard !paths.isEmpty else { return }
+        Task.detached(priority: .background) {
+            await PhotoCache.shared.prefetch(paths)
         }
     }
 }
