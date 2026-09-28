@@ -579,6 +579,62 @@ def generate_plan(week: int, days_per_week: int, experience: str,
     }
 
 
+def exercise_entry(slug: str, experience: str, equipment: str) -> dict:
+    """A plan exercise for a slug the subscriber picked, not the rotation.
+
+    Name and sets come from that slug's pool entry at the subscriber's level.
+    A slug with no entry there takes the nearest level's, the easier one on a
+    tie, so an advanced-only lift added by an intermediate is still
+    prescribed. Entries beyond the kit are skipped first: some slugs name a
+    barbell variant in a full gym and a bodyweight one at home.
+    """
+    target = LEVELS.index(experience)
+    rank = EQUIPMENT_RANK[equipment]
+    best = None
+    for groups in POOLS.values():
+        for level, pool in groups.items():
+            for name, s, sets, tier in pool:
+                if s != slug or EQUIPMENT_RANK[tier] > rank:
+                    continue
+                key = (abs(LEVELS.index(level) - target), LEVELS.index(level))
+                if best is None or key < best[0]:
+                    best = (key, name, sets, tier)
+    if best is None:
+        raise ValueError(f"{slug} is not an exercise this kit allows")
+    _key, name, sets, tier = best
+    return {"name": name, "slug": slug, "sets": sets, "equipment": tier,
+            "alts": alternatives_for(slug, equipment)}
+
+
+def apply_day_edits(plan: dict, edited: dict[int, list[str]],
+                    experience: str, equipment: str) -> dict:
+    """The plan with the days the subscriber rearranged put over it.
+
+    `edited` maps a 1-based day to its slugs, in order. An exercise already
+    in the generated day keeps its generated entry, so changing one row never
+    renames another. Every day carries `original`, the generated slugs, which
+    is what the phone resets to without signal. A slug retired since, or
+    beyond a kit changed since, is dropped rather than failing the page.
+    """
+    days = []
+    for number, day in enumerate(plan["days"], start=1):
+        generated = {ex["slug"]: ex for ex in day["exercises"]}
+        out = {**day, "original": list(generated), "edited": number in edited}
+        if number in edited:
+            exercises = []
+            for slug in edited[number]:
+                if slug in generated:
+                    exercises.append(generated[slug])
+                    continue
+                try:
+                    exercises.append(exercise_entry(slug, experience, equipment))
+                except ValueError:
+                    continue
+            out["exercises"] = exercises
+        days.append(out)
+    return {**plan, "days": days}
+
+
 def plan_text(plan: dict, exercise_url=lambda slug: "") -> str:
     """Plain-text rendering (email text part, CLI preview)."""
     gym_days = len(plan["days"])
@@ -632,6 +688,32 @@ def flat_library() -> list[dict]:
                                  "level": level, "part": part,
                                  "equipment": tier})
     return rows
+
+
+def library_for(experience: str, equipment: str) -> list[dict]:
+    """Every exercise the kit allows, once each, for the app's picker.
+
+    Named and prescribed as exercise_entry would add it, so what the picker
+    shows is what lands in the plan. Legs, push, pull, core, then by name.
+    """
+    patterns: dict[str, list[str]] = {}
+    for pattern, groups in POOLS.items():
+        for pool in groups.values():
+            for _name, slug, _sets, _tier in pool:
+                found = patterns.setdefault(slug, [])
+                if pattern not in found:
+                    found.append(pattern)
+    rank = EQUIPMENT_RANK[equipment]
+    out = []
+    for slug, found in patterns.items():
+        if EQUIPMENT_RANK[SLUG_EQUIPMENT[slug]] > rank:
+            continue
+        entry = exercise_entry(slug, experience, equipment)
+        del entry["alts"]
+        out.append({**entry, "part": BODY_PARTS[found[0]], "patterns": found,
+                    "alternatives": alternatives_for(slug, equipment, limit=4)})
+    out.sort(key=lambda e: (PART_ORDER.index(e["part"]), e["name"].lower()))
+    return out
 
 
 PATTERN_NAMES = {
