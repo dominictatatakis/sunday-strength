@@ -135,3 +135,52 @@ final class APIClientTests: XCTestCase {
         }
     }
 }
+
+extension APIClientTests {
+    private func planFixture() throws -> Data {
+        let url = Bundle(for: APIClientTests.self)
+            .url(forResource: "plan", withExtension: "json")!
+        return try Data(contentsOf: url)
+    }
+
+    func testSetDaySendsTheWholeDay() async throws {
+        let seen = LockedBox()
+        let plan = try planFixture()
+        StubProtocol.handler = { request in
+            seen.value = "\(request.httpMethod!) \(request.url!.path) "
+                + String(decoding: request.httpBodyStreamData() ?? Data(),
+                         as: UTF8.self)
+            return (self.response(200), plan)
+        }
+        _ = try await client().setDay(.init(week: "2026-W40", day: 2,
+                                            slugs: ["plank", "push-up"]))
+        let sent = seen.value ?? ""
+        XCTAssertTrue(sent.hasPrefix("PUT /api/v1/plan/days/2 "), sent)
+        XCTAssertTrue(sent.contains(#""slugs":["plank","push-up"]"#), sent)
+        XCTAssertTrue(sent.contains(#""week":"2026-W40""#), sent)
+    }
+
+    func testResetDayDeletesWithTheWeek() async throws {
+        let seen = LockedBox()
+        let plan = try planFixture()
+        StubProtocol.handler = { request in
+            seen.value = "\(request.httpMethod!) \(request.url!.path)?"
+                + (request.url!.query ?? "")
+            return (self.response(200), plan)
+        }
+        _ = try await client().resetDay(week: "2026-W40", day: 3)
+        XCTAssertEqual(seen.value, "DELETE /api/v1/plan/days/3?week=2026-W40")
+    }
+
+    func testExercisesReadsTheLibrary() async throws {
+        let url = Bundle(for: APIClientTests.self)
+            .url(forResource: "exercises", withExtension: "json")!
+        let library = try Data(contentsOf: url)
+        StubProtocol.handler = { request in
+            XCTAssertEqual(request.url!.path, "/api/v1/exercises")
+            return (self.response(200), library)
+        }
+        let exercises = try await client().exercises()
+        XCTAssertEqual(exercises.map(\.slug), ["goblet-squat", "plank"])
+    }
+}

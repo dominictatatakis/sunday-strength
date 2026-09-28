@@ -303,7 +303,7 @@ final class AppModel {
             await restore()
         } catch {
             // Network failure: keep the optimistic state and replay later.
-            await queue.enqueue(body)
+            await queue.enqueue(.tick(body))
             isOffline = true
         }
     }
@@ -348,15 +348,22 @@ final class AppModel {
         }
     }
 
-    /// Replay queued ticks. A 400 means the server will never accept this one,
-    /// so drop it — otherwise it retries forever.
+    /// Replays queued changes in the order they were made. A 400 means the
+    /// server will never accept that one, so drop it rather than retry forever.
     func flushQueue() async {
-        for entry in await queue.pending() {
+        for change in await queue.pending() {
             do {
-                try await api.setCompletion(entry)
-                await queue.remove(entry)
+                switch change {
+                case .tick(let body):
+                    try await api.setCompletion(body)
+                case .setDay(let body):
+                    _ = try await api.setDay(body)
+                case .resetDay(let week, let day):
+                    _ = try await api.resetDay(week: week, day: day)
+                }
+                await queue.remove(change)
             } catch APIError.rejected {
-                await queue.remove(entry)
+                await queue.remove(change)
             } catch {
                 break          // still offline; keep the rest for next time
             }

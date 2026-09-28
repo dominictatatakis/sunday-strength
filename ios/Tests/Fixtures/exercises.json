@@ -1,0 +1,14 @@
+{"exercises": [
+  {"slug": "goblet-squat", "name": "Goblet squat", "sets": "3 x 10-12",
+   "equipment": "dumbbells", "part": "legs", "patterns": ["squat"],
+   "instructions": ["Hold the bell at your chest.", "Sit down between your heels."],
+   "images": ["/static/exercises/goblet-squat-0.jpg", "/static/exercises/goblet-squat-1.jpg"],
+   "youtube_url": "https://www.youtube.com/results?search_query=Goblet+squat+form+how+to",
+   "alternatives": [{"name": "Bodyweight box squat", "slug": "box-squat"},
+                    {"name": "Leg press", "slug": "leg-press"},
+                    {"name": "Barbell back squat", "slug": "back-squat"}]},
+  {"slug": "plank", "name": "Plank", "sets": "3 x 30-45s", "equipment": "bodyweight",
+   "part": "core", "patterns": ["core"], "instructions": [], "images": [],
+   "youtube_url": "https://www.youtube.com/results?search_query=Plank+form+how+to",
+   "alternatives": []}
+]}

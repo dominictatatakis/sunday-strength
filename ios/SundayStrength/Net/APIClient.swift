@@ -148,6 +148,11 @@ actor APIClient {
                       query: week.map { [URLQueryItem(name: "week", value: $0)] })
     }
 
+    func exercises() async throws -> [LibraryExercise] {
+        let library: Library = try await get("api/v1/exercises", query: nil)
+        return library.exercises
+    }
+
     /// Changes preferences. Sends only what differs, so a stale profile
     /// cannot revert a change made on the website since launch.
     func updateMe(_ patch: PrefsPatch) async throws -> Me {
@@ -168,6 +173,26 @@ actor APIClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSON.encoder.encode(body)
         _ = try await send(request)
+    }
+
+    /// Sets one day's exercises. The server answers with the whole week.
+    func setDay(_ body: DayBody) async throws -> Plan {
+        var request = URLRequest(
+            url: baseURL.appendingPathComponent("api/v1/plan/days/\(body.day)"))
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSON.encoder.encode(body)
+        return try JSON.decoder.decode(Plan.self, from: await send(request))
+    }
+
+    func resetDay(week: String, day: Int) async throws -> Plan {
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("api/v1/plan/days/\(day)"),
+            resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "week", value: week)]
+        var request = URLRequest(url: components.url!)
+        request.httpMethod = "DELETE"
+        return try JSON.decoder.decode(Plan.self, from: await send(request))
     }
 
     // MARK: - Plumbing
