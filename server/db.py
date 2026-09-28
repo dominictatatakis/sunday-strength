@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import datetime
 import hashlib
 import hmac
 import json
@@ -76,6 +77,15 @@ CREATE TABLE IF NOT EXISTS auth_identities (
     email TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (provider, subject_id)
+);
+CREATE TABLE IF NOT EXISTS day_plans (
+    id SERIAL PRIMARY KEY,
+    subscriber_id INTEGER NOT NULL REFERENCES subscribers(id),
+    week TEXT NOT NULL,
+    day INTEGER NOT NULL,
+    slugs TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (subscriber_id, week, day)
 );
 """
 
@@ -181,6 +191,17 @@ CREATE TABLE IF NOT EXISTS auth_identities (
     email TEXT,                                     -- as given; may be a relay
     created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
     UNIQUE (provider, subject_id)
+);
+-- A day the subscriber rearranged, for that week only. The rest of the plan
+-- still comes from generate_plan, and app._plan_for puts these over it.
+CREATE TABLE IF NOT EXISTS day_plans (
+    id INTEGER PRIMARY KEY,
+    subscriber_id INTEGER NOT NULL REFERENCES subscribers(id),
+    week TEXT NOT NULL,                             -- '2026-W40'
+    day INTEGER NOT NULL,                           -- 1-based day in that week
+    slugs TEXT NOT NULL,                            -- JSON list, in order
+    updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+    UNIQUE (subscriber_id, week, day)
 );
 """
 
@@ -393,6 +414,11 @@ def week_key(year: int, week: int) -> str:
     return f"{year}-W{week:02d}"
 
 
+def current_week_key() -> str:
+    year, week = datetime.date.today().isocalendar()[:2]
+    return week_key(year, week)
+
+
 def record_send(conn, subscriber_id: int, week: str) -> bool:
     """Claim this subscriber-week. False if they already got this week's email."""
     try:
@@ -479,6 +505,39 @@ def completions_all(conn, subscriber_id: int) -> list:
     return [dict(r) for r in conn.execute(
         "SELECT * FROM completions WHERE subscriber_id = ? ORDER BY week, day",
         (subscriber_id,)).fetchall()]
+
+
+def set_day_plan(conn, subscriber_id: int, week: str, day: int,
+                 slugs: list[str]) -> None:
+    """Save one day's exercises as the subscriber arranged them.
+
+    The whole list rather than a change to it, so saving it twice is
+    harmless: the phone replays edits it made without signal.
+    """
+    conn.execute(
+        """INSERT INTO day_plans (subscriber_id, week, day, slugs)
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT(subscriber_id, week, day) DO UPDATE SET
+             slugs = excluded.slugs,
+             updated_at = CURRENT_TIMESTAMP""",
+        (subscriber_id, week, day, json.dumps(slugs)))
+    conn.commit()
+
+
+def clear_day_plan(conn, subscriber_id: int, week: str, day: int) -> None:
+    conn.execute(
+        "DELETE FROM day_plans WHERE subscriber_id = ? AND week = ? AND day = ?",
+        (subscriber_id, week, day))
+    conn.commit()
+
+
+def day_plans_for_week(conn, subscriber_id: int,
+                       week: str) -> dict[int, list[str]]:
+    """{day: [slugs]} for the days rearranged that week."""
+    rows = conn.execute(
+        "SELECT day, slugs FROM day_plans WHERE subscriber_id = ? AND week = ?",
+        (subscriber_id, week)).fetchall()
+    return {r["day"]: json.loads(r["slugs"]) for r in rows}
 
 
 # --- bodyweight -------------------------------------------------------------
@@ -576,11 +635,20 @@ def set_password(conn, email: str, password: str) -> None:
 
 def update_prefs(conn, email: str, days: int, experience: str,
                  include_run: bool, equipment: str = "full") -> None:
+    before = get_by_email(conn, email)
     conn.execute(
         """UPDATE subscribers SET days_per_week = ?, experience = ?,
              include_run = ?, equipment = ?, updated_at = CURRENT_TIMESTAMP
            WHERE email = ?""",
         (days, experience, int(include_run), equipment, email.lower().strip()))
+    # A new split or kit rebuilds the week, so days rearranged against the old
+    # one no longer line up: day 4 may be gone, or need kit that is. A level
+    # change keeps them; their sets are re-read at the new level.
+    if before and (before["days_per_week"] != days
+                   or sub_equipment(before) != equipment):
+        conn.execute(
+            "DELETE FROM day_plans WHERE subscriber_id = ? AND week >= ?",
+            (before["id"], current_week_key()))
     conn.commit()
 
 
