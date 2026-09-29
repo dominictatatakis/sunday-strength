@@ -96,6 +96,9 @@ DELETE /api/v1/plan/days/{day}        puts the day back as generated
 GET    /api/v1/exercises              the library your kit allows, with steps and photo paths
 ```
 
+Each day in a plan also carries `circuit`: that day's 5-minute abs circuit (`work` and `rest` in
+seconds, five `moves`, and `done`). It is ticked like an exercise, with the slug `abs-circuit`.
+
 The iPhone app also uses the `/api/v1/auth/*` sign-in routes. `/docs` is off unless `DEV_DOCS=1`.
 
 ## Security

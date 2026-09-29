@@ -951,8 +951,15 @@ def _plan_payload(conn, sub, year: int, iso_week: int) -> dict:
     key = db.week_key(year, iso_week)
     plan = _plan_for(sub, year, iso_week)
     logged = db.completions_for_week(conn, sub["id"], key)
+    equipment = db.sub_equipment(sub)
     for i, day in enumerate(plan["days"], start=1):
         day["day"] = i
+        # Chosen against the generated day, so rearranging the day doesn't
+        # reshuffle the circuit. Only the app shows it.
+        day["circuit"] = {
+            **engine.abs_circuit(iso_week, i, sub["experience"], equipment,
+                                 set(day["original"])),
+            "done": f"{i}|{engine.CIRCUIT_SLUG}" in logged}
         for ex in day["exercises"]:
             log = logged.get(f"{i}|{ex['slug']}")
             ex["done"] = bool(log)
@@ -987,7 +994,9 @@ def _apply_completion(conn, sub, week: str | None, day: int, slug: str,
     days = _plan_for(sub, year, iso_week)["days"]
     if not 1 <= day <= len(days):
         raise HTTPException(400, f"That week has days 1-{len(days)}.")
-    if slug not in {ex["slug"] for ex in days[day - 1]["exercises"]}:
+    # The abs circuit is ticked as one slot per day, whatever its moves.
+    if (slug != engine.CIRCUIT_SLUG
+            and slug not in {ex["slug"] for ex in days[day - 1]["exercises"]}):
         raise HTTPException(400, "That exercise isn't in that day's plan.")
 
     if done:

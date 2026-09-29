@@ -25,6 +25,9 @@ the wrong exercise.
   it and must agree. No randomness, no "today", no database reads. Days a subscriber rearranges live
   in `day_plans` and go over the generated week in `app._plan_for`, which everything that shows or
   checks a plan must use. Only the Sunday email calls `generate_plan` directly.
+- **New exercises that must not change existing plans go in `EXTRA_EXERCISES`**, not `POOLS`.
+  Anything added to a pool shifts the rotation and changes every plan already generated, which
+  orphans the sets logged against them.
 - **Equipment tiers are cumulative:** `bodyweight < dumbbells < full`. Each exercise carries the
   minimum kit it needs, and every (pattern, level, tier) needs at least one option, or `generate_plan`
   raises. Adding a pattern or a level means checking all three tiers.
