@@ -223,3 +223,56 @@ final class DayEditTests: XCTestCase {
         XCTAssertNil(sent.value)
     }
 }
+
+extension DayEditTests {
+    private var withCircuit: Data {
+        Data("""
+        {"week":40,"week_key":"2026-W40","equipment":"full","run":null,"notes":[],
+         "days":[{"day":1,"title":"Day 1 - Legs","edited":false,
+                  "original":["goblet-squat"],
+                  "exercises":[\(row("goblet-squat", "Goblet squat"))],
+                  "circuit":{"work":40,"rest":20,"done":false,
+                             "moves":[{"name":"Plank","slug":"plank"}]}}]}
+        """.utf8)
+    }
+
+    func testCircuitTickShowsAtOnceAndIsSent() async {
+        let sent = LockedBox()
+        StubProtocol.handler = { request in
+            if request.url!.path.hasSuffix("/completions") {
+                sent.value = String(decoding: request.httpBodyStreamData() ?? Data(),
+                                    as: UTF8.self)
+                return self.ok(Data(#"{"ok":true}"#.utf8))
+            }
+            if request.url!.path.hasSuffix("/exercises") { return self.ok(self.library) }
+            return self.ok(self.withCircuit)
+        }
+        let model = makeModel()
+        await model.loadPlan()
+        await model.setCircuitDone(day: 1, true)
+
+        XCTAssertEqual(model.plan!.days[0].circuit?.done, true)
+        let body = sent.value ?? ""
+        XCTAssertTrue(body.contains(#""slug":"abs-circuit""#), body)
+        XCTAssertTrue(body.contains(#""done":true"#), body)
+    }
+
+    func testCircuitTickWithoutSignalIsQueued() async {
+        StubProtocol.handler = { request in
+            if request.url!.path.hasSuffix("/completions") {
+                throw URLError(.notConnectedToInternet)
+            }
+            if request.url!.path.hasSuffix("/exercises") { return self.ok(self.library) }
+            return self.ok(self.withCircuit)
+        }
+        let model = makeModel()
+        await model.loadPlan()
+        await model.setCircuitDone(day: 1, true)
+
+        XCTAssertEqual(model.plan!.days[0].circuit?.done, true)
+        let pending = await queue().pending()
+        XCTAssertEqual(pending, [.tick(.init(slug: "abs-circuit", day: 1, week: "2026-W40",
+                                             sets: nil, reps: nil, weightKg: nil,
+                                             done: true))])
+    }
+}

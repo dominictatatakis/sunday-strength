@@ -305,6 +305,22 @@ final class AppModel {
                    revertTo: previous)
     }
 
+    /// What a finished abs circuit is ticked off as: engine.CIRCUIT_SLUG.
+    static let circuitSlug = "abs-circuit"
+
+    /// Ticks the day's abs circuit, or clears it. Shown at once and sent like
+    /// any tick, so it queues without signal.
+    func setCircuitDone(day: Int, _ done: Bool) async {
+        guard var plan, let d = plan.days.firstIndex(where: { $0.day == day }),
+              plan.days[d].circuit != nil else { return }
+        plan.days[d].circuit?.done = done
+        self.plan = plan
+        PlanCache.save(plan)
+        await push(.init(slug: Self.circuitSlug, day: day, week: weekKey,
+                         sets: nil, reps: nil, weightKg: nil, done: done),
+                   revertTo: nil)
+    }
+
     func libraryEntry(_ slug: String) -> LibraryExercise? {
         library.first { $0.slug == slug }
     }
@@ -524,7 +540,9 @@ final class AppModel {
     /// This week's photos, fetched now so the how-to shows them without signal.
     private func prefetchPhotos() {
         guard let plan else { return }
-        let slugs = Set(plan.days.flatMap { $0.exercises.map(\.slug) })
+        let slugs = Set(plan.days.flatMap {
+            $0.exercises.map(\.slug) + ($0.circuit?.moves.map(\.slug) ?? [])
+        })
         let paths = library.filter { slugs.contains($0.slug) }.flatMap(\.images)
         guard !paths.isEmpty else { return }
         Task.detached(priority: .background) {
