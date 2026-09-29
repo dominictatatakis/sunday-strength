@@ -184,3 +184,20 @@ extension APIClientTests {
         XCTAssertEqual(exercises.map(\.slug), ["goblet-squat", "plank"])
     }
 }
+
+extension APIClientTests {
+    /// A free Render instance can take most of a minute to boot. The default
+    /// 60 seconds gave up just as it answered and showed the app as offline.
+    func testRequestsWaitLongEnoughForASleepingServer() async throws {
+        let timeout = LockedBox()
+        let url = Bundle(for: APIClientTests.self)
+            .url(forResource: "me", withExtension: "json")!
+        let me = try Data(contentsOf: url)
+        StubProtocol.handler = { request in
+            timeout.value = String(Int(request.timeoutInterval))
+            return (self.response(200), me)
+        }
+        _ = try await client().me()
+        XCTAssertEqual(timeout.value, "90")
+    }
+}

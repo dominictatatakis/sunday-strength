@@ -17,6 +17,10 @@ final class AppModel {
     private(set) var plan: Plan?
     private(set) var isOffline = false
     private(set) var isSaving = false
+    /// True while the saved plan is on screen and the server's is on its way.
+    /// After a quiet spell the free server takes up to a minute to wake, and
+    /// the plan screen says so rather than looking stuck.
+    private(set) var isUpdating = false
     /// Which sign-in buttons to offer. Nil until the server has said, and a
     /// provider it does not advertise gets no button at all.
     private(set) var providers: ProvidersInfo?
@@ -43,6 +47,16 @@ final class AppModel {
             phase = .signedOut(nil)
             return
         }
+        // Open on the plan saved on the phone rather than a spinner: the
+        // server can take up to a minute to wake, and the saved plan is what
+        // is needed at the gym. Everything below then updates it.
+        if plan == nil, let cached = PlanCache.load() {
+            plan = cached
+            library = LibraryCache.load() ?? []
+            phase = .signedIn
+        }
+        isUpdating = true
+        defer { isUpdating = false }
         // The session cookie lasts 30 days, so try it first. Signing in again
         // on every launch spent the server's sign-in allowance (8 per 15
         // minutes) and locked out anyone who opened the app often.

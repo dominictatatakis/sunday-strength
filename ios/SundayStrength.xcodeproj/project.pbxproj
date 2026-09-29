@@ -15,6 +15,7 @@
 		253232219639D59DF5507627 /* Plan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A993A9AADDCA4CB1146382F2 /* Plan.swift */; };
 		2D96FFDF4CA21D0E291A8108 /* OfflineQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACDBF7B351CECB831518498A /* OfflineQueueTests.swift */; };
 		30CEADC15D08416F9F29DD4A /* ProviderSignInTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2ED3F117D95381FC6801516 /* ProviderSignInTests.swift */; };
+		3545FBF2D8E58415FB718FB8 /* WakingNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B4F8D7A45D82FD5C4CD3DE2 /* WakingNote.swift */; };
 		3FC76E98B780661FF8C0A91A /* Exercise.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06EEA04C93990311F2AC99FE /* Exercise.swift */; };
 		4003808F7CF3B5D8D1C78477 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA7A7CB445766F537D042521 /* LoginView.swift */; };
 		41B825D2E1E418F097BBF525 /* QueuedChange.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4B72164D54E281CC0DD96DC /* QueuedChange.swift */; };
@@ -22,6 +23,7 @@
 		47B6992C8ED57FD546E86DC4 /* PhotoCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D4E3F25B282FE32BA4A85D8 /* PhotoCacheTests.swift */; };
 		49EC922EEFF97894507B5DCD /* ScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 951A3F3F2184E3F3CF47CEC5 /* ScreenshotTests.swift */; };
 		5138596E6C440DE82BE58EE6 /* EditingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C309DF2AF776D9842580DA9 /* EditingUITests.swift */; };
+		5173A55078DA8A3B302D6F4F /* LaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B72E6391B3D3F6F413A47105 /* LaunchTests.swift */; };
 		57384C19523CECBB5232E084 /* ExercisePhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B0AF6B023A5DCD4CE19BAAA /* ExercisePhoto.swift */; };
 		599FB898BE117EAEB9E0C770 /* LogSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00C7C2E8E0C6DECDF3046EE /* LogSheet.swift */; };
 		602055D1A690D4170BD6F952 /* ExerciseDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95849DC62417245A97C2BB50 /* ExerciseDetailView.swift */; };
@@ -96,6 +98,7 @@
 		4C9F6F680B1E3FB768A9F170 /* plan.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = plan.json; sourceTree = "<group>"; };
 		52970BF6851ADF2381ACCD1E /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		569CB00C577E380E88326ECA /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
+		5B4F8D7A45D82FD5C4CD3DE2 /* WakingNote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakingNote.swift; sourceTree = "<group>"; };
 		623FEC31250FEE5702FD7881 /* KeychainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTests.swift; sourceTree = "<group>"; };
 		671DDF35867ED56FC16D9AF1 /* DayEditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayEditTests.swift; sourceTree = "<group>"; };
 		68A35EDD0F84337BF5F3809C /* SundayStrength.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SundayStrength.entitlements; sourceTree = "<group>"; };
@@ -119,6 +122,7 @@
 		AC67C00D9B1FA1C322009079 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		ACDBF7B351CECB831518498A /* OfflineQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineQueueTests.swift; sourceTree = "<group>"; };
 		B5307D02B6BCD0AD904EDFAC /* SundayStrengthUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SundayStrengthUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B72E6391B3D3F6F413A47105 /* LaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchTests.swift; sourceTree = "<group>"; };
 		B883BBF8D1E20992AA73C1A8 /* SundayStrength.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SundayStrength.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA64F5E44F05818270F3D724 /* me.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = me.json; sourceTree = "<group>"; };
 		BA7A7CB445766F537D042521 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -192,6 +196,7 @@
 				569CB00C577E380E88326ECA /* AppModelTests.swift */,
 				671DDF35867ED56FC16D9AF1 /* DayEditTests.swift */,
 				623FEC31250FEE5702FD7881 /* KeychainTests.swift */,
+				B72E6391B3D3F6F413A47105 /* LaunchTests.swift */,
 				3484CF4296C9C695271EABB1 /* ModelDecodingTests.swift */,
 				ACDBF7B351CECB831518498A /* OfflineQueueTests.swift */,
 				7D4E3F25B282FE32BA4A85D8 /* PhotoCacheTests.swift */,
@@ -217,6 +222,7 @@
 				968BFA36573BBB7B56205E69 /* PlanView.swift */,
 				7B8744E7DE5249C4C013FD47 /* RootView.swift */,
 				2368EB628A53456EF05D29F1 /* SettingsView.swift */,
+				5B4F8D7A45D82FD5C4CD3DE2 /* WakingNote.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -397,6 +403,7 @@
 				B67CFD68CCA8237D72787F2C /* AppModelTests.swift in Sources */,
 				1375A8FC5E407AB36C7C6EBD /* DayEditTests.swift in Sources */,
 				971F31C11AC2A46235CFE9BA /* KeychainTests.swift in Sources */,
+				5173A55078DA8A3B302D6F4F /* LaunchTests.swift in Sources */,
 				D9A9512F52B7371EA8EC8A3D /* ModelDecodingTests.swift in Sources */,
 				2D96FFDF4CA21D0E291A8108 /* OfflineQueueTests.swift in Sources */,
 				47B6992C8ED57FD546E86DC4 /* PhotoCacheTests.swift in Sources */,
@@ -439,6 +446,7 @@
 				D1EA04C473951DCB2DE66D5A /* RootView.swift in Sources */,
 				7863C39046CF15618CF72C7A /* SettingsView.swift in Sources */,
 				0CE5A7705113F213AC06F463 /* SundayStrengthApp.swift in Sources */,
+				3545FBF2D8E58415FB718FB8 /* WakingNote.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -527,7 +535,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -604,7 +612,7 @@
 				CODE_SIGNING_REQUIRED = NO;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;

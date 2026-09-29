@@ -227,6 +227,11 @@ actor APIClient {
     private func perform(_ request: URLRequest,
                          delegate: URLSessionTaskDelegate?)
         async throws -> (Data, URLResponse) {
+        // The free server can take most of a minute to wake after a quiet
+        // spell, and the default 60 seconds gave up just as it answered. With
+        // no signal at all this changes nothing: that fails at once.
+        var request = request
+        request.timeoutInterval = 90
         do {
             return try await session.data(for: request, delegate: delegate)
         } catch let error as URLError {

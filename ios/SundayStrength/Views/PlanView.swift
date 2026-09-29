@@ -30,6 +30,9 @@ struct PlanView: View {
                         .font(.footnote)
                         .foregroundStyle(.red)
                 }
+                if model.isUpdating {
+                    WakingNote()
+                }
                 if model.isOffline {
                     Text("Offline — showing your last saved plan.")
                         .font(.footnote)
