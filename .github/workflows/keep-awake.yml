@@ -1,0 +1,21 @@
+name: Keep awake
+
+# Render's free plan sleeps the site after 15 idle minutes, and the next
+# request waits up to a minute for it to boot: that was every app open.
+# Pinging only in the daytime keeps it awake when it is used while staying
+# inside the 750 free hours a month shared with the other free services on
+# the account; round the clock would use nearly all of them.
+
+on:
+  schedule:
+    - cron: "*/10 5-20 * * *"   # 05:00-20:59 UTC = 06:00-22:00 UK in summer, 05:00-21:00 in winter
+  workflow_dispatch: {}          # manual run from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the site
+        run: curl -fsS -o /dev/null --max-time 90 --retry 2 "$APP_URL/health"
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
