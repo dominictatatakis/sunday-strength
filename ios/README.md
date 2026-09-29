@@ -1,7 +1,8 @@
 # Sunday Strength for iOS
 
-A SwiftUI iPhone app for the same account as the website. It shows this week's plan, logs sets, edits
-preferences, and keeps working with no signal. The progress tab is not built yet. No third-party
+A SwiftUI iPhone app for the same account as the website. It shows this week's plan, logs sets, shows
+how to do each exercise and what to swap it for, lets you swap, add or remove exercises on any day,
+edits preferences, and keeps working with no signal. The progress tab is not built yet. No third-party
 dependencies.
 
 ## Run it
@@ -57,7 +58,8 @@ cd ios && xcodebuild -project SundayStrength.xcodeproj -scheme SundayStrength \
 
 `PATCH /api/v1/me` takes any subset of `days_per_week`, `experience`, `equipment` and `include_run`,
 validated as `POST /account` does. The app sends only the fields that changed, so a profile an hour
-old can't undo an edit made on the website. Saving rebuilds the week.
+old can't undo an edit made on the website. Saving rebuilds the week; a new number of days or
+equipment also drops any days rearranged this week or later.
 
 ## Structure
 
@@ -66,8 +68,11 @@ old can't undo an edit made on the website. Saving rebuilds the week.
 | `project.yml` | The project definition |
 | `Net/APIClient.swift` | Every network call, and the error types |
 | `Net/Keychain.swift` | Stored password or refresh token |
-| `Net/OfflineQueue.swift` | Ticks made without signal |
+| `Net/OfflineQueue.swift` | Ticks and day edits made without signal, replayed in order |
 | `Net/PlanCache.swift` | The last plan seen, for offline launches |
+| `Net/LibraryCache.swift` | The exercise library, for how-to steps and the picker offline |
+| `Net/PhotoCache.swift` | Exercise photos on disk; this week's are fetched in advance |
+| `Models/PickerOrder.swift` | The order the picker offers exercises in |
 | `Net/ProviderSignIn.swift` | Apple and Google sign-in |
 | `AppModel.swift` | Sign-in state, the current plan, optimistic updates |
 | `Views/` | SwiftUI, with no logic beyond formatting |
