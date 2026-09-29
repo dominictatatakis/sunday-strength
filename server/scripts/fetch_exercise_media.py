@@ -63,6 +63,12 @@ ALIASES = {
     "ab-wheel-rollout": "Ab Roller",
     "cable-crunch": "Cable Crunch",
     "pallof-press": "Pallof Press",
+    "mountain-climber": "Mountain Climbers",
+    "reverse-crunch": "Reverse Crunch",
+    "bicycle-crunch": "Air Bike",           # the db's name for the bicycle crunch
+    # The db's "Flutter Kicks" is face down on a bench, a glute exercise;
+    # the circuit's is on your back. Our own copy below instead.
+    "flutter-kick": None,
     "bench-press": "Barbell Bench Press - Medium Grip",
     "incline-bench-press": "Barbell Incline Bench Press - Medium Grip",
     "close-grip-bench-press": "Close-Grip Barbell Bench Press",
@@ -126,6 +132,19 @@ EXTRA: dict[str, dict] = {
             "To make it harder, put your feet on a step, chair or sofa "
             "(elevated pike push-up) - the higher the feet, the more weight "
             "goes through your shoulders.",
+        ],
+    },
+    "flutter-kick": {
+        "name": "Flutter kicks",
+        "instructions": [
+            "Lie on your back with your legs straight and your hands flat under "
+            "your bottom or by your sides.",
+            "Press your lower back into the floor, then lift both heels a few "
+            "inches off the ground.",
+            "Kick your legs up and down in small, quick alternating movements, "
+            "keeping them straight and your lower back down.",
+            "Breathe steadily throughout. If your back starts to arch, raise "
+            "your legs higher or bend your knees slightly.",
         ],
     },
 }
