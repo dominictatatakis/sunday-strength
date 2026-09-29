@@ -8,12 +8,14 @@ enum PlanSheet: Identifiable {
     case log(day: Int, exercise: PlanExercise)
     case howTo(day: Int, slug: String)
     case pick(day: Int, replacing: String?)
+    case circuit(day: Int)
 
     var id: String {
         switch self {
         case .log(let day, let exercise): "log|\(day)|\(exercise.slug)"
         case .howTo(let day, let slug): "howto|\(day)|\(slug)"
         case .pick(let day, let replacing): "pick|\(day)|\(replacing ?? "")"
+        case .circuit(let day): "circuit|\(day)"
         }
     }
 }
@@ -72,6 +74,8 @@ struct PlanView: View {
             sheet = .pick(day: day, replacing: nil)
         case .reset:
             Task { await model.resetDay(day) }
+        case .circuit:
+            sheet = .circuit(day: day)
         }
     }
 
@@ -90,6 +94,10 @@ struct PlanView: View {
             NavigationStack {
                 ExercisePickerView(day: day, replacing: replacing,
                                    close: { self.sheet = nil })
+            }
+        case .circuit(let day):
+            NavigationStack {
+                CircuitView(day: day, close: { self.sheet = nil })
             }
         }
     }

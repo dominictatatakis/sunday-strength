@@ -2,11 +2,13 @@ import SwiftUI
 
 /// How to do one exercise: photos, steps, and what to do instead if the kit
 /// is taken. `inPlan` is an exercise already in the day; `candidate` one
-/// being looked at before it goes in.
+/// being looked at before it goes in; `info` just the how-to, as the abs
+/// circuit shows it.
 struct ExerciseDetailView: View {
     enum Role: Hashable {
         case inPlan
         case candidate(replacing: String?)
+        case info
     }
 
     let slug: String
@@ -34,7 +36,7 @@ struct ExerciseDetailView: View {
                 Text("The how-to hasn't downloaded yet. Pull down on the plan to refresh when you have signal.")
                     .foregroundStyle(.secondary)
             }
-            actions
+            if role != .info { actions }
         }
         .navigationTitle(entry?.name ?? planRow?.name ?? "Exercise")
         .navigationBarTitleDisplayMode(.inline)
@@ -139,6 +141,8 @@ struct ExerciseDetailView: View {
                         close()
                     }
                 }
+            case .info:
+                EmptyView()
             }
         }
     }

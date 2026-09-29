@@ -38,6 +38,7 @@
 		7EB019B13F65C39AEF7EFC52 /* Auth.swift in Sources */ = {isa = PBXBuildFile; fileRef = C22DA1E0862DCB9629B4D951 /* Auth.swift */; };
 		8029C4F2D2F0D306FCCFF596 /* AppUITestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E53F4B70A857796458AB037 /* AppUITestCase.swift */; };
 		84DA5BC373E1BF97EA84B620 /* APIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3AE8794C049E9F93177F44C /* APIClientTests.swift */; };
+		874228D2DDD8C0D28A7BF2F6 /* CircuitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31A8FB2031732885223B7544 /* CircuitView.swift */; };
 		8A8D1899BAEC43E1E167BD3C /* OfflineUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0C94C59E9774492EC0D0D81 /* OfflineUITests.swift */; };
 		8EEFE8EF018439E21B56AD67 /* me.json in Resources */ = {isa = PBXBuildFile; fileRef = BA64F5E44F05818270F3D724 /* me.json */; };
 		971F31C11AC2A46235CFE9BA /* KeychainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 623FEC31250FEE5702FD7881 /* KeychainTests.swift */; };
@@ -95,6 +96,7 @@
 		2948834A97B2C8CE871EFA45 /* SignInUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInUITests.swift; sourceTree = "<group>"; };
 		29AFAE192B8D1387978AA1AE /* LoggingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingUITests.swift; sourceTree = "<group>"; };
 		2C309DF2AF776D9842580DA9 /* EditingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditingUITests.swift; sourceTree = "<group>"; };
+		31A8FB2031732885223B7544 /* CircuitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircuitView.swift; sourceTree = "<group>"; };
 		3484CF4296C9C695271EABB1 /* ModelDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelDecodingTests.swift; sourceTree = "<group>"; };
 		3B0AF6B023A5DCD4CE19BAAA /* ExercisePhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisePhoto.swift; sourceTree = "<group>"; };
 		49C5D3931906B57CD59F4AEC /* CircuitTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircuitTimer.swift; sourceTree = "<group>"; };
@@ -217,6 +219,7 @@
 		BE2F590D564702BA3799E8CC /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				31A8FB2031732885223B7544 /* CircuitView.swift */,
 				AB99F9BD3A61696E73D52D3B /* DayCard.swift */,
 				95849DC62417245A97C2BB50 /* ExerciseDetailView.swift */,
 				3B0AF6B023A5DCD4CE19BAAA /* ExercisePhoto.swift */,
@@ -429,6 +432,7 @@
 				DC3A5DED9F11A76BA1A6B401 /* AppModel.swift in Sources */,
 				7EB019B13F65C39AEF7EFC52 /* Auth.swift in Sources */,
 				11DCC2F209E3A456E0DF114B /* CircuitTimer.swift in Sources */,
+				874228D2DDD8C0D28A7BF2F6 /* CircuitView.swift in Sources */,
 				A1EBE804C7049EC2DEE4F8AF /* Completion.swift in Sources */,
 				448F07FD1D0B0BF811C7A776 /* DayCard.swift in Sources */,
 				3FC76E98B780661FF8C0A91A /* Exercise.swift in Sources */,
