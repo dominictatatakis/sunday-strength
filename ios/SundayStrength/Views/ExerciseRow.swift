@@ -3,6 +3,7 @@ import SwiftUI
 struct ExerciseRow: View {
     let exercise: PlanExercise
     let onTap: () -> Void
+    let onInfo: () -> Void
 
     var body: some View {
         rowContent
@@ -32,9 +33,15 @@ struct ExerciseRow: View {
                 }
             }
             Spacer()
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            // Borderless, or the List makes the whole row this button and a
+            // tap meant for the log sheet opens the how-to instead.
+            Button(action: onInfo) {
+                Image(systemName: "info.circle")
+                    .font(.title3)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel("How to do \(exercise.name)")
+            .accessibilityIdentifier("howto")
         }
         .contentShape(Rectangle())
         .padding(.vertical, 6)

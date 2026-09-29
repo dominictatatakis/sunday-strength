@@ -1,18 +1,26 @@
 import SwiftUI
 
-/// Which exercise the log sheet is for. Held by PlanView rather than by each
-/// row: a row's own @State is tied to a view the list rebuilds whenever the
-/// plan reloads, which loses the sheet mid-tap.
-private struct LogTarget: Identifiable {
-    let day: Int
-    let exercise: PlanExercise
+/// What the plan screen has open over it. Held here rather than by each row:
+/// a row's own @State is tied to a view the list rebuilds whenever the plan
+/// reloads, which loses the sheet mid-tap. One sheet at a time, so moving
+/// from a how-to to the log sheet swaps one for the other.
+enum PlanSheet: Identifiable {
+    case log(day: Int, exercise: PlanExercise)
+    case howTo(day: Int, slug: String)
+    case pick(day: Int, replacing: String?)
 
-    var id: String { "\(day)|\(exercise.slug)" }
+    var id: String {
+        switch self {
+        case .log(let day, let exercise): "log|\(day)|\(exercise.slug)"
+        case .howTo(let day, let slug): "howto|\(day)|\(slug)"
+        case .pick(let day, let replacing): "pick|\(day)|\(replacing ?? "")"
+        }
+    }
 }
 
 struct PlanView: View {
     @Environment(AppModel.self) private var model
-    @State private var logging: LogTarget?
+    @State private var sheet: PlanSheet?
 
     var body: some View {
         NavigationStack {
@@ -29,9 +37,7 @@ struct PlanView: View {
                 }
                 if let plan = model.plan {
                     ForEach(plan.days) { day in
-                        DayCard(day: day) { exercise in
-                            logging = LogTarget(day: day.day, exercise: exercise)
-                        }
+                        DayCard(day: day) { handle($0, on: day.day) }
                     }
                     if let run = plan.run {
                         Section("Run") {
@@ -43,11 +49,45 @@ struct PlanView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .sheet(item: $logging) { target in
-                LogSheet(exercise: target.exercise, day: target.day)
-            }
+            .sheet(item: $sheet) { content(for: $0) }
             .navigationTitle(model.plan.map { "Week \($0.week)" } ?? "This week")
             .refreshable { await model.loadPlan() }
+        }
+    }
+
+    private func handle(_ action: DayAction, on day: Int) {
+        switch action {
+        case .log(let exercise):
+            sheet = .log(day: day, exercise: exercise)
+        case .howTo(let exercise):
+            sheet = .howTo(day: day, slug: exercise.slug)
+        case .swap(let exercise):
+            sheet = .pick(day: day, replacing: exercise.slug)
+        case .remove(let exercise):
+            Task { await model.remove(day: day, slug: exercise.slug) }
+        case .add:
+            sheet = .pick(day: day, replacing: nil)
+        case .reset:
+            Task { await model.resetDay(day) }
+        }
+    }
+
+    @ViewBuilder
+    private func content(for sheet: PlanSheet) -> some View {
+        switch sheet {
+        case .log(let day, let exercise):
+            LogSheet(exercise: exercise, day: day)
+        case .howTo(let day, let slug):
+            NavigationStack {
+                ExerciseDetailView(slug: slug, day: day, role: .inPlan,
+                                   close: { self.sheet = nil },
+                                   logSets: { self.sheet = .log(day: day, exercise: $0) })
+            }
+        case .pick(let day, let replacing):
+            NavigationStack {
+                ExercisePickerView(day: day, replacing: replacing,
+                                   close: { self.sheet = nil })
+            }
         }
     }
 }
