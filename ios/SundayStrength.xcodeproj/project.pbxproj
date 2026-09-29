@@ -26,6 +26,7 @@
 		65F3BFBB58074402F6B22899 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16ACB5981A5DCAA8D88D86F7 /* APIClient.swift */; };
 		6DCB73254810798187AAE35F /* plan.json in Resources */ = {isa = PBXBuildFile; fileRef = 4C9F6F680B1E3FB768A9F170 /* plan.json */; };
 		6E31F136A0511D00EF0AF28E /* PlanCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = A12DC4969948614E5FF54164 /* PlanCache.swift */; };
+		714D91FCFE0C012055B1E070 /* PickerOrderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE80C64DB9AFF0F56E5D1047 /* PickerOrderTests.swift */; };
 		7863C39046CF15618CF72C7A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2368EB628A53456EF05D29F1 /* SettingsView.swift */; };
 		7EB019B13F65C39AEF7EFC52 /* Auth.swift in Sources */ = {isa = PBXBuildFile; fileRef = C22DA1E0862DCB9629B4D951 /* Auth.swift */; };
 		8029C4F2D2F0D306FCCFF596 /* AppUITestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E53F4B70A857796458AB037 /* AppUITestCase.swift */; };
@@ -44,6 +45,7 @@
 		B77E91475F55FB95F49FAB21 /* LibraryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72889DEBB6CBF63C79390DB3 /* LibraryCache.swift */; };
 		BE6F929E72F47CA5E60E0CF2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9B4BA82A83C0940690225EA7 /* Assets.xcassets */; };
 		C18FA9D18D7DDB5FA7DEEED8 /* SettingsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 277BDC8B16456B8A3E33D4FD /* SettingsUITests.swift */; };
+		CBE2D418235B74160A03D34B /* PickerOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3CEAC4729C6A4F78D4A4475 /* PickerOrder.swift */; };
 		CF6F683C970FDEC97C49E9C5 /* LoggingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29AFAE192B8D1387978AA1AE /* LoggingUITests.swift */; };
 		CFAC8B82E1A322B15CA67010 /* StubProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724FFF1836763611C2B9DB90 /* StubProtocol.swift */; };
 		D1EA04C473951DCB2DE66D5A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8744E7DE5249C4C013FD47 /* RootView.swift */; };
@@ -116,10 +118,12 @@
 		C22DA1E0862DCB9629B4D951 /* Auth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Auth.swift; sourceTree = "<group>"; };
 		C3AE8794C049E9F93177F44C /* APIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientTests.swift; sourceTree = "<group>"; };
 		CC0A25CAA60358542AACDEB9 /* ProviderSignIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderSignIn.swift; sourceTree = "<group>"; };
+		CE80C64DB9AFF0F56E5D1047 /* PickerOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerOrderTests.swift; sourceTree = "<group>"; };
 		D4B72164D54E281CC0DD96DC /* QueuedChange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueuedChange.swift; sourceTree = "<group>"; };
 		DF921D75CAF0587340D67AD3 /* ExerciseRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseRow.swift; sourceTree = "<group>"; };
 		E00C7C2E8E0C6DECDF3046EE /* LogSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogSheet.swift; sourceTree = "<group>"; };
 		F0C94C59E9774492EC0D0D81 /* OfflineUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineUITests.swift; sourceTree = "<group>"; };
+		F3CEAC4729C6A4F78D4A4475 /* PickerOrder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerOrder.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -150,6 +154,7 @@
 				0D73B7785C57418D544C629D /* Completion.swift */,
 				06EEA04C93990311F2AC99FE /* Exercise.swift */,
 				7718A9A35D1E17CE1BB1860B /* Me.swift */,
+				F3CEAC4729C6A4F78D4A4475 /* PickerOrder.swift */,
 				A993A9AADDCA4CB1146382F2 /* Plan.swift */,
 				D4B72164D54E281CC0DD96DC /* QueuedChange.swift */,
 			);
@@ -182,6 +187,7 @@
 				3484CF4296C9C695271EABB1 /* ModelDecodingTests.swift */,
 				ACDBF7B351CECB831518498A /* OfflineQueueTests.swift */,
 				7D4E3F25B282FE32BA4A85D8 /* PhotoCacheTests.swift */,
+				CE80C64DB9AFF0F56E5D1047 /* PickerOrderTests.swift */,
 				A2ED3F117D95381FC6801516 /* ProviderSignInTests.swift */,
 				724FFF1836763611C2B9DB90 /* StubProtocol.swift */,
 				08F981EF7ED9BED18C8BDA6D /* Fixtures */,
@@ -381,6 +387,7 @@
 				D9A9512F52B7371EA8EC8A3D /* ModelDecodingTests.swift in Sources */,
 				2D96FFDF4CA21D0E291A8108 /* OfflineQueueTests.swift in Sources */,
 				47B6992C8ED57FD546E86DC4 /* PhotoCacheTests.swift in Sources */,
+				714D91FCFE0C012055B1E070 /* PickerOrderTests.swift in Sources */,
 				30CEADC15D08416F9F29DD4A /* ProviderSignInTests.swift in Sources */,
 				CFAC8B82E1A322B15CA67010 /* StubProtocol.swift in Sources */,
 			);
@@ -407,6 +414,7 @@
 				ABFDEDC04BFD153B507E9890 /* OfflineQueue.swift in Sources */,
 				61E1590BE6A3484B110EF51A /* OnboardingView.swift in Sources */,
 				AAFA17E8AB245208E701D941 /* PhotoCache.swift in Sources */,
+				CBE2D418235B74160A03D34B /* PickerOrder.swift in Sources */,
 				253232219639D59DF5507627 /* Plan.swift in Sources */,
 				6E31F136A0511D00EF0AF28E /* PlanCache.swift in Sources */,
 				9DE5C3BA1B59837463FE95F4 /* PlanView.swift in Sources */,
