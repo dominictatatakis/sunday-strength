@@ -17,8 +17,20 @@ struct PlanDay: Codable, Equatable, Identifiable {
     var edited: Bool
     /// The generated day's slugs: what Reset puts back, even without signal.
     var original: [String]?
+    /// The 5-minute abs circuit at the end of the day. Nil from an older
+    /// server or a plan cached before it existed: then there is no row.
+    var circuit: Circuit?
 
     var id: Int { day }
+}
+
+/// A day's abs circuit: the moves, seconds of work and rest for each, and
+/// whether it has been done.
+struct Circuit: Codable, Equatable {
+    let work: Int
+    let rest: Int
+    let moves: [Alt]
+    var done: Bool
 }
 
 extension PlanDay {
@@ -31,6 +43,7 @@ extension PlanDay {
         exercises = try c.decode([PlanExercise].self, forKey: .exercises)
         edited = try c.decodeIfPresent(Bool.self, forKey: .edited) ?? false
         original = try c.decodeIfPresent([String].self, forKey: .original)
+        circuit = try c.decodeIfPresent(Circuit.self, forKey: .circuit)
     }
 
     /// The server's copy of a day the phone has just changed.

@@ -141,3 +141,24 @@ final class AdoptingTests: XCTestCase {
         XCTAssertEqual(local.adopting(server, newcomers: ["c"]), local)
     }
 }
+
+extension ModelDecodingTests {
+    /// An older server, or a plan cached before the circuit, has none: the
+    /// row is simply not shown.
+    func testAPlanWithoutACircuitHasNone() throws {
+        let plan = try JSON.decoder.decode(Plan.self, from: fixture("plan"))
+        XCTAssertNil(plan.days[0].circuit)
+    }
+
+    func testDecodesADaysCircuit() throws {
+        let json = """
+        {"day":1,"title":"Day 1","exercises":[],
+         "circuit":{"work":40,"rest":20,"done":true,
+                    "moves":[{"name":"Plank","slug":"plank"}]}}
+        """
+        let day = try JSON.decoder.decode(PlanDay.self, from: Data(json.utf8))
+        XCTAssertEqual(day.circuit, Circuit(work: 40, rest: 20,
+                                            moves: [Alt(name: "Plank", slug: "plank")],
+                                            done: true))
+    }
+}
