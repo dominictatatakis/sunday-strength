@@ -484,18 +484,29 @@ EQUIPMENT_NOTES = {
 }
 
 
+# Library-only exercises: the abs circuit uses them and they can be added to
+# a day, but they never enter the weekly rotation. Adding them to POOLS would
+# change every plan already generated. (name, slug, prescription, min kit)
+EXTRA_EXERCISES: list[tuple[str, str, str, str]] = [
+    ("Mountain climbers", "mountain-climber", "3 x 30 sec", "bodyweight"),
+    ("Reverse crunch", "reverse-crunch", "3 x 12-15", "bodyweight"),
+    ("Bicycle crunch", "bicycle-crunch", "3 x 20 (10 each side)", "bodyweight"),
+    ("Flutter kicks", "flutter-kick", "3 x 30 sec", "bodyweight"),
+]
+
+
 def _derive_slug_maps() -> tuple[dict[str, str], dict[str, str]]:
     """slug -> cleanest display name, and slug -> least equipment it needs."""
     names: dict[str, str] = {}
     equip: dict[str, str] = {}
-    for pattern in POOLS.values():
-        for pool in pattern.values():
-            for name, slug, _sets, tier in pool:
-                if slug not in names or len(name) < len(names[slug]):
-                    names[slug] = name
-                if (slug not in equip
-                        or EQUIPMENT_RANK[tier] < EQUIPMENT_RANK[equip[slug]]):
-                    equip[slug] = tier
+    entries = [e for pattern in POOLS.values() for pool in pattern.values()
+               for e in pool] + EXTRA_EXERCISES
+    for name, slug, _sets, tier in entries:
+        if slug not in names or len(name) < len(names[slug]):
+            names[slug] = name
+        if (slug not in equip
+                or EQUIPMENT_RANK[tier] < EQUIPMENT_RANK[equip[slug]]):
+            equip[slug] = tier
     return names, equip
 
 
@@ -600,6 +611,10 @@ def exercise_entry(slug: str, experience: str, equipment: str) -> dict:
                 if best is None or key < best[0]:
                     best = (key, name, sets, tier)
     if best is None:
+        best = next(((None, name, sets, tier)
+                     for name, s, sets, tier in EXTRA_EXERCISES
+                     if s == slug and EQUIPMENT_RANK[tier] <= rank), None)
+    if best is None:
         raise ValueError(f"{slug} is not an exercise this kit allows")
     _key, name, sets, tier = best
     return {"name": name, "slug": slug, "sets": sets, "equipment": tier,
@@ -633,6 +648,54 @@ def apply_day_edits(plan: dict, edited: dict[int, list[str]],
             out["exercises"] = exercises
         days.append(out)
     return {**plan, "days": days}
+
+
+# The 5-minute abs circuit: one move from each group, in order, so it covers
+# resisting extension, flexion, the sides, twisting, then a fast finish.
+# Each entry is (slug, the levels it suits); kit comes from SLUG_EQUIPMENT.
+_ALL = LEVELS
+CIRCUIT_GROUPS: list[list[tuple[str, tuple[str, ...]]]] = [
+    [("plank", _ALL), ("dead-bug", ("beginner", "intermediate")),
+     ("ab-wheel-rollout", ("advanced",))],
+    [("crunch", ("beginner",)), ("reverse-crunch", _ALL),
+     ("bicycle-crunch", _ALL), ("hanging-knee-raise", ("intermediate",)),
+     ("hanging-leg-raise", ("advanced",)), ("cable-crunch", ("advanced",))],
+    [("side-plank", _ALL)],
+    [("russian-twist", _ALL), ("pallof-press", ("intermediate", "advanced"))],
+    [("mountain-climber", _ALL), ("flutter-kick", _ALL)],
+]
+# Seconds of work and rest per move: more rest for beginners, the common
+# 40/20 and 45/15 finisher splits above that. All come to about 5 minutes.
+CIRCUIT_TIMES = {"beginner": (30, 30), "intermediate": (40, 20),
+                 "advanced": (45, 15)}
+CIRCUIT_SLUG = "abs-circuit"    # what a finished circuit is ticked off as
+
+
+def abs_circuit(week: int, day: int, experience: str, equipment: str,
+                exclude=frozenset()) -> dict:
+    """The abs circuit for one gym day: five moves and their seconds.
+
+    Deterministic like generate_plan. Moves already in that day's session
+    are skipped; a group left with nothing gives its place to the next
+    unused move from the others, so there are always five different moves.
+    """
+    rank = EQUIPMENT_RANK[equipment]
+
+    def usable(slug, levels, taken):
+        return (experience in levels and slug not in exclude
+                and slug not in taken
+                and EQUIPMENT_RANK[SLUG_EQUIPMENT[slug]] <= rank)
+
+    picks: list[str | None] = []
+    for i, group in enumerate(CIRCUIT_GROUPS):
+        options = [s for s, levels in group if usable(s, levels, picks)]
+        picks.append(options[(week + day + i) % len(options)] if options else None)
+    spare = iter([s for group in CIRCUIT_GROUPS for s, levels in group
+                  if usable(s, levels, picks)])
+    moves = [s for s in (p or next(spare, None) for p in picks) if s]
+    work, rest = CIRCUIT_TIMES[experience]
+    return {"work": work, "rest": rest,
+            "moves": [{"name": SLUG_NAMES[s], "slug": s} for s in moves]}
 
 
 def plan_text(plan: dict, exercise_url=lambda slug: "") -> str:
@@ -703,6 +766,8 @@ def library_for(experience: str, equipment: str) -> list[dict]:
                 found = patterns.setdefault(slug, [])
                 if pattern not in found:
                     found.append(pattern)
+    for _name, slug, _sets, _tier in EXTRA_EXERCISES:
+        patterns.setdefault(slug, ["core"])
     rank = EQUIPMENT_RANK[equipment]
     out = []
     for slug, found in patterns.items():
@@ -749,7 +814,7 @@ def all_slugs() -> set[str]:
     return {slug
             for pattern in POOLS.values()
             for pool in pattern.values()
-            for _, slug, _, _ in pool}
+            for _, slug, _, _ in pool} | {slug for _, slug, _, _ in EXTRA_EXERCISES}
 
 
 if __name__ == "__main__":
