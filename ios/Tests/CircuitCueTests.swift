@@ -76,3 +76,45 @@ final class CircuitSoundsTests: XCTestCase {
         XCTAssertTrue(session.categoryOptions.contains(.duckOthers))
     }
 }
+
+/// Heard in a gym, over music, from a phone on the floor: long enough and
+/// loud enough to notice mid-rep.
+final class CircuitCueLoudnessTests: XCTestCase {
+
+    private func seconds(_ cue: CircuitCue) -> Double {
+        cue.notes.reduce(0) { $0 + $1.1 }
+    }
+
+    func testTheBeepsLastLongEnoughToHear() {
+        XCTAssertGreaterThanOrEqual(seconds(.stop), 1.0)
+        XCTAssertGreaterThanOrEqual(seconds(.start), 0.7)
+        XCTAssertGreaterThanOrEqual(seconds(.countdown), 0.15)
+        XCTAssertGreaterThanOrEqual(seconds(.finish), 1.0)
+    }
+
+    /// Phone speakers are weak below about 800 Hz, so nothing sits there.
+    func testTheyAreInThePhoneSpeakersRange() {
+        for cue in CircuitCue.allCases {
+            for (frequency, _) in cue.notes where frequency > 0 {
+                XCTAssertGreaterThanOrEqual(frequency, 800, "\(cue)")
+            }
+        }
+    }
+
+    /// Stop stays lower than start, so the two can't be mixed up.
+    func testStopIsLowerThanStart() {
+        let stop = CircuitCue.stop.notes.map(\.0).max()!
+        let start = CircuitCue.start.notes.map(\.0).filter { $0 > 0 }.min()!
+        XCTAssertLessThan(stop, start)
+    }
+
+    func testTheyPlayNearFullVolume() {
+        XCTAssertGreaterThanOrEqual(CircuitCue.countdown.volume, 0.8)
+        let samples = Tone.wav([(1000, 0.1)]).dropFirst(44)
+        var peak: Int16 = 0
+        samples.withUnsafeBytes { raw in
+            for value in raw.bindMemory(to: Int16.self) { peak = max(peak, abs(value)) }
+        }
+        XCTAssertGreaterThanOrEqual(Double(peak), 0.94 * Double(Int16.max))
+    }
+}

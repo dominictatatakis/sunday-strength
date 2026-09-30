@@ -20,7 +20,7 @@ enum Tone {
                 let edge = min(Double(i), Double(count - 1 - i))
                 let envelope = fade > 0 ? min(edge / fade, 1) : 1
                 let value = sin(2 * .pi * frequency * Double(i) / Double(sampleRate))
-                samples.append(Int16(value * envelope * 0.8 * Double(Int16.max)))
+                samples.append(Int16(value * envelope * 0.95 * Double(Int16.max)))
             }
         }
 

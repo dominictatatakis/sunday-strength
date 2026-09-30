@@ -12,19 +12,21 @@ enum CircuitCue: CaseIterable {
     /// The circuit is over: three rising notes.
     case finish
 
-    /// (frequency in Hz, seconds); 0 Hz is a gap.
+    /// (frequency in Hz, seconds); 0 Hz is a gap. Nothing below 800 Hz:
+    /// phone speakers are weak down there, and the first version's 440 Hz
+    /// stop was hard to hear in a gym.
     var notes: [(Double, Double)] {
         switch self {
-        case .start: [(880, 0.12), (0, 0.06), (1320, 0.2)]
-        case .stop: [(440, 0.7)]
-        case .countdown: [(660, 0.09)]
-        case .finish: [(660, 0.15), (880, 0.15), (1320, 0.45)]
+        case .start: [(1320, 0.25), (0, 0.1), (1760, 0.35)]
+        case .stop: [(880, 1.0)]
+        case .countdown: [(1100, 0.15)]
+        case .finish: [(1320, 0.2), (1760, 0.2), (2640, 0.6)]
         }
     }
 
-    /// The countdown is quieter so the stop and start stand out.
+    /// The countdown is a little quieter so the stop and start stand out.
     var volume: Float {
-        self == .countdown ? 0.5 : 1
+        self == .countdown ? 0.8 : 1
     }
 
     /// What to play as the timer moves from one position to the next: nil
