@@ -1,4 +1,3 @@
-import AudioToolbox
 import SwiftUI
 import UIKit
 
@@ -109,17 +108,21 @@ private struct CircuitTimerView: View {
     let onStop: () -> Void
 
     @State private var finished = false
+    @State private var sounds = CircuitSounds()
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 0.2)) { context in
             let position = run.timer.position(at: run.elapsed(at: context.date))
             content(position)
-                .onChange(of: position) { old, new in cue(from: old, to: new) }
+                .onChange(of: position) { old, new in
+                    guard let cue = CircuitCue.between(old, new) else { return }
+                    play(cue)
+                }
         }
         .onAppear {
             // Kept awake: auto-lock mid-plank would leave the timer silent.
             UIApplication.shared.isIdleTimerDisabled = true
-            Cue.change()
+            play(.start)
         }
         .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
     }
@@ -181,37 +184,21 @@ private struct CircuitTimerView: View {
         return upcoming < circuit.moves.count ? circuit.moves[upcoming].name : nil
     }
 
-    private func cue(from old: CircuitTimer.Position?, to new: CircuitTimer.Position?) {
-        guard let new else {
-            if old != nil, !finished {
-                finished = true
-                Cue.finish()
-                onFinish()
-            }
-            return
+    /// A sound and a buzz. On finishing, also ticks the circuit off once.
+    private func play(_ cue: CircuitCue) {
+        if cue == .finish {
+            guard !finished else { return }
+            finished = true
+            onFinish()
         }
-        if old?.move != new.move || old?.phase != new.phase {
-            Cue.change()
-        } else if old?.remaining != new.remaining, new.remaining <= 3 {
-            Cue.tick()
+        sounds.play(cue)
+        switch cue {
+        case .start, .stop:
+            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        case .countdown:
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        case .finish:
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
-    }
-}
-
-/// A buzz and a short sound. System sounds keep quiet on silent.
-private enum Cue {
-    static func change() {
-        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-        AudioServicesPlaySystemSound(1110)
-    }
-
-    static func tick() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        AudioServicesPlaySystemSound(1103)
-    }
-
-    static func finish() {
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-        AudioServicesPlaySystemSound(1111)
     }
 }

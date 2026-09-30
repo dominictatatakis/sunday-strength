@@ -13,6 +13,7 @@
 		13060D728973000CB0EFD82E /* ProviderSignIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0A25CAA60358542AACDEB9 /* ProviderSignIn.swift */; };
 		136B60DCA8855CD315C44503 /* JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 259F8DF97FF07689B4BBE36B /* JSON.swift */; };
 		1375A8FC5E407AB36C7C6EBD /* DayEditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 671DDF35867ED56FC16D9AF1 /* DayEditTests.swift */; };
+		17B6EC14B9F39B9751705C9A /* CircuitCue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 267CD6CF119BFDC64F13D4B6 /* CircuitCue.swift */; };
 		253232219639D59DF5507627 /* Plan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A993A9AADDCA4CB1146382F2 /* Plan.swift */; };
 		2D96FFDF4CA21D0E291A8108 /* OfflineQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACDBF7B351CECB831518498A /* OfflineQueueTests.swift */; };
 		30CEADC15D08416F9F29DD4A /* ProviderSignInTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2ED3F117D95381FC6801516 /* ProviderSignInTests.swift */; };
@@ -37,6 +38,7 @@
 		7863C39046CF15618CF72C7A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2368EB628A53456EF05D29F1 /* SettingsView.swift */; };
 		7EB019B13F65C39AEF7EFC52 /* Auth.swift in Sources */ = {isa = PBXBuildFile; fileRef = C22DA1E0862DCB9629B4D951 /* Auth.swift */; };
 		8029C4F2D2F0D306FCCFF596 /* AppUITestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E53F4B70A857796458AB037 /* AppUITestCase.swift */; };
+		83AEDDD25A8E6B18FA3D0D97 /* Tone.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB7ECFAE2109EA5D1D6BB1B2 /* Tone.swift */; };
 		84DA5BC373E1BF97EA84B620 /* APIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3AE8794C049E9F93177F44C /* APIClientTests.swift */; };
 		84DFA2163B50B4F650AFC11C /* CircuitUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74B2100A4A67150891EC0DA6 /* CircuitUITests.swift */; };
 		874228D2DDD8C0D28A7BF2F6 /* CircuitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31A8FB2031732885223B7544 /* CircuitView.swift */; };
@@ -55,12 +57,14 @@
 		BE6F929E72F47CA5E60E0CF2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9B4BA82A83C0940690225EA7 /* Assets.xcassets */; };
 		C18FA9D18D7DDB5FA7DEEED8 /* SettingsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 277BDC8B16456B8A3E33D4FD /* SettingsUITests.swift */; };
 		C3A7F774F8A201DF9584C62D /* CircuitTimerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A21C87E733A608985B1A6B7 /* CircuitTimerTests.swift */; };
+		C5FF31D7C175BC635F19A3C2 /* CircuitCueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDBB2BD8DA6033949272BEF7 /* CircuitCueTests.swift */; };
 		CBE2D418235B74160A03D34B /* PickerOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3CEAC4729C6A4F78D4A4475 /* PickerOrder.swift */; };
 		CF6F683C970FDEC97C49E9C5 /* LoggingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29AFAE192B8D1387978AA1AE /* LoggingUITests.swift */; };
 		CFAC8B82E1A322B15CA67010 /* StubProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724FFF1836763611C2B9DB90 /* StubProtocol.swift */; };
 		D1EA04C473951DCB2DE66D5A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8744E7DE5249C4C013FD47 /* RootView.swift */; };
 		D9A9512F52B7371EA8EC8A3D /* ModelDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3484CF4296C9C695271EABB1 /* ModelDecodingTests.swift */; };
 		DC3A5DED9F11A76BA1A6B401 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52970BF6851ADF2381ACCD1E /* AppModel.swift */; };
+		E13706715C6A9E7FD14E22E3 /* CircuitSounds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D281A23A3F854175563B09B /* CircuitSounds.swift */; };
 		E4DBD5CAE97D82C01FD6578E /* exercises.json in Resources */ = {isa = PBXBuildFile; fileRef = 8D374ADD2D74056EE6079549 /* exercises.json */; };
 		EB7D0337F3557A5ED0C8A101 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB6627A558A1480D58839F3 /* Keychain.swift */; };
 /* End PBXBuildFile section */
@@ -93,6 +97,7 @@
 		1EB6627A558A1480D58839F3 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
 		2368EB628A53456EF05D29F1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		259F8DF97FF07689B4BBE36B /* JSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSON.swift; sourceTree = "<group>"; };
+		267CD6CF119BFDC64F13D4B6 /* CircuitCue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircuitCue.swift; sourceTree = "<group>"; };
 		277BDC8B16456B8A3E33D4FD /* SettingsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsUITests.swift; sourceTree = "<group>"; };
 		2948834A97B2C8CE871EFA45 /* SignInUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInUITests.swift; sourceTree = "<group>"; };
 		29AFAE192B8D1387978AA1AE /* LoggingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingUITests.swift; sourceTree = "<group>"; };
@@ -102,6 +107,7 @@
 		3B0AF6B023A5DCD4CE19BAAA /* ExercisePhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisePhoto.swift; sourceTree = "<group>"; };
 		49C5D3931906B57CD59F4AEC /* CircuitTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircuitTimer.swift; sourceTree = "<group>"; };
 		4C9F6F680B1E3FB768A9F170 /* plan.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = plan.json; sourceTree = "<group>"; };
+		4D281A23A3F854175563B09B /* CircuitSounds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircuitSounds.swift; sourceTree = "<group>"; };
 		52970BF6851ADF2381ACCD1E /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		569CB00C577E380E88326ECA /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
 		5B4F8D7A45D82FD5C4CD3DE2 /* WakingNote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakingNote.swift; sourceTree = "<group>"; };
@@ -140,8 +146,10 @@
 		CC0A25CAA60358542AACDEB9 /* ProviderSignIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderSignIn.swift; sourceTree = "<group>"; };
 		CE80C64DB9AFF0F56E5D1047 /* PickerOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerOrderTests.swift; sourceTree = "<group>"; };
 		D4B72164D54E281CC0DD96DC /* QueuedChange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueuedChange.swift; sourceTree = "<group>"; };
+		DDBB2BD8DA6033949272BEF7 /* CircuitCueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircuitCueTests.swift; sourceTree = "<group>"; };
 		DF921D75CAF0587340D67AD3 /* ExerciseRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseRow.swift; sourceTree = "<group>"; };
 		E00C7C2E8E0C6DECDF3046EE /* LogSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogSheet.swift; sourceTree = "<group>"; };
+		EB7ECFAE2109EA5D1D6BB1B2 /* Tone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tone.swift; sourceTree = "<group>"; };
 		F0C94C59E9774492EC0D0D81 /* OfflineUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineUITests.swift; sourceTree = "<group>"; };
 		F3CEAC4729C6A4F78D4A4475 /* PickerOrder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerOrder.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -171,6 +179,7 @@
 			isa = PBXGroup;
 			children = (
 				C22DA1E0862DCB9629B4D951 /* Auth.swift */,
+				267CD6CF119BFDC64F13D4B6 /* CircuitCue.swift */,
 				49C5D3931906B57CD59F4AEC /* CircuitTimer.swift */,
 				0D73B7785C57418D544C629D /* Completion.swift */,
 				06EEA04C93990311F2AC99FE /* Exercise.swift */,
@@ -193,9 +202,19 @@
 				0CDAF3B959A8167A0009165A /* SundayStrengthApp.swift */,
 				2C02DF6ABF3F989158C7DC9F /* Models */,
 				CDEAA7D8917536B985AA5663 /* Net */,
+				828FF899E76456EEC19F9813 /* Sound */,
 				BE2F590D564702BA3799E8CC /* Views */,
 			);
 			path = SundayStrength;
+			sourceTree = "<group>";
+		};
+		828FF899E76456EEC19F9813 /* Sound */ = {
+			isa = PBXGroup;
+			children = (
+				4D281A23A3F854175563B09B /* CircuitSounds.swift */,
+				EB7ECFAE2109EA5D1D6BB1B2 /* Tone.swift */,
+			);
+			path = Sound;
 			sourceTree = "<group>";
 		};
 		A48F0E9354536E6F1AA699ED /* Tests */ = {
@@ -203,6 +222,7 @@
 			children = (
 				C3AE8794C049E9F93177F44C /* APIClientTests.swift */,
 				569CB00C577E380E88326ECA /* AppModelTests.swift */,
+				DDBB2BD8DA6033949272BEF7 /* CircuitCueTests.swift */,
 				8A21C87E733A608985B1A6B7 /* CircuitTimerTests.swift */,
 				671DDF35867ED56FC16D9AF1 /* DayEditTests.swift */,
 				623FEC31250FEE5702FD7881 /* KeychainTests.swift */,
@@ -414,6 +434,7 @@
 			files = (
 				84DA5BC373E1BF97EA84B620 /* APIClientTests.swift in Sources */,
 				B67CFD68CCA8237D72787F2C /* AppModelTests.swift in Sources */,
+				C5FF31D7C175BC635F19A3C2 /* CircuitCueTests.swift in Sources */,
 				C3A7F774F8A201DF9584C62D /* CircuitTimerTests.swift in Sources */,
 				1375A8FC5E407AB36C7C6EBD /* DayEditTests.swift in Sources */,
 				971F31C11AC2A46235CFE9BA /* KeychainTests.swift in Sources */,
@@ -435,6 +456,8 @@
 				AB8B4133469B98DA7CF2E3CE /* AppConfig.swift in Sources */,
 				DC3A5DED9F11A76BA1A6B401 /* AppModel.swift in Sources */,
 				7EB019B13F65C39AEF7EFC52 /* Auth.swift in Sources */,
+				17B6EC14B9F39B9751705C9A /* CircuitCue.swift in Sources */,
+				E13706715C6A9E7FD14E22E3 /* CircuitSounds.swift in Sources */,
 				11DCC2F209E3A456E0DF114B /* CircuitTimer.swift in Sources */,
 				874228D2DDD8C0D28A7BF2F6 /* CircuitView.swift in Sources */,
 				A1EBE804C7049EC2DEE4F8AF /* Completion.swift in Sources */,
@@ -462,6 +485,7 @@
 				D1EA04C473951DCB2DE66D5A /* RootView.swift in Sources */,
 				7863C39046CF15618CF72C7A /* SettingsView.swift in Sources */,
 				0CE5A7705113F213AC06F463 /* SundayStrengthApp.swift in Sources */,
+				83AEDDD25A8E6B18FA3D0D97 /* Tone.swift in Sources */,
 				3545FBF2D8E58415FB718FB8 /* WakingNote.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
