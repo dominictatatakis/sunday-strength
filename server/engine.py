@@ -690,17 +690,17 @@ def apply_day_edits(plan: dict, edited: dict[int, list[str]],
 
 # The 5-minute abs circuit: one move from each group, in order, so it covers
 # resisting extension, flexion, the sides held, the sides moving, then a fast
-# finish. Every move is done down on a mat, on your back, front or side: no
-# standing, hanging, kneeling at a machine or sitting up, so the timer never
-# has you get up or fetch anything mid-circuit.
+# finish. Every move is done down on a mat, lying, kneeling or sitting: no
+# standing, hanging or machines, so the timer never has you get up and walk
+# to a station mid-circuit.
 # Each entry is (slug, the levels it suits); kit comes from SLUG_EQUIPMENT.
 _ALL = LEVELS
 CIRCUIT_GROUPS: list[list[tuple[str, tuple[str, ...]]]] = [
-    [("plank", _ALL), ("dead-bug", _ALL)],
+    [("plank", _ALL), ("dead-bug", _ALL), ("ab-wheel-rollout", ("advanced",))],
     [("crunch", ("beginner",)), ("reverse-crunch", _ALL),
      ("bicycle-crunch", _ALL)],
     [("side-plank", _ALL)],
-    [("heel-touch", _ALL)],
+    [("russian-twist", _ALL), ("heel-touch", _ALL)],
     [("mountain-climber", _ALL), ("flutter-kick", _ALL)],
 ]
 # Seconds of work and rest per move: more rest for beginners, the common

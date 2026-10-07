@@ -5,10 +5,10 @@ import engine
 
 NEW = {"mountain-climber", "reverse-crunch", "bicycle-crunch", "flutter-kick",
        "heel-touch"}
-# Done standing, hanging, kneeling at a machine or sitting up: the circuit
-# keeps you down on the mat, so none of these.
+# Done standing, hanging or at a machine: the circuit keeps you down on the
+# mat, so none of these.
 NOT_ON_THE_MAT = {"pallof-press", "hanging-knee-raise", "hanging-leg-raise",
-                  "cable-crunch", "ab-wheel-rollout", "russian-twist"}
+                  "cable-crunch"}
 
 
 class Circuit(unittest.TestCase):
