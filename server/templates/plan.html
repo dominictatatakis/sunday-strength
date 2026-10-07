@@ -10,7 +10,7 @@
 <body>
 <div class="wrap">
   {% include "_nav.html" %}
-  <h1 style="font-size:2rem;">Your week — week {{ week }}</h1>
+  <h1 style="font-size:2rem;">Your week — week {{ number }}</h1>
   <p class="lede" style="margin-bottom:1.75rem;">
     {{ plan.days | length }} gym day{{ 's' if plan.days | length != 1 }}{% if plan.run %} + 1 run{% endif %}
     · {{ sub.experience }} · built for {{ plan.equipment if plan.equipment != 'full' else 'a full gym' }}
@@ -69,6 +69,11 @@
         href="/exercise/{{ a.slug }}">{{ a.name }}</a>{{ " or " if not loop.last }}{% endfor %}</p>
       {% endif %}
       {% endfor %}
+      {% if day.circuit %}
+      <p class="circuit"><strong>Then 5-minute abs:</strong>
+        {% for m in day.circuit.moves %}<a href="/exercise/{{ m.slug }}">{{ m.name }}</a>{{ " · " if not loop.last }}{% endfor %}
+        — {{ day.circuit.work }} s on, {{ day.circuit.rest }} s rest. The app times it for you.</p>
+      {% endif %}
     </div>
     {% endfor %}
     {% if plan.run %}

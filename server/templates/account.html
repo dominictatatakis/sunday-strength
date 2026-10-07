@@ -58,6 +58,25 @@
   </div>
 
   <div class="panel" style="margin-top:1rem;">
+    <h2>Sunday email</h2>
+    {% if weekly_email %}
+    <p class="mini">On. Your plan for the week ahead arrives every Sunday
+      evening. Your plan stays in the app and on this site either way.</p>
+    <form method="post" action="/account/weekly-email" style="margin-top:.9rem;">
+      <input type="hidden" name="on" value="false">
+      <button type="submit" class="secondary">Stop the Sunday email</button>
+    </form>
+    {% else %}
+    <p class="mini">Off. Your plan is in the app and
+      <a href="/account/plan">on this site</a> each week, but not in your inbox.</p>
+    <form method="post" action="/account/weekly-email" style="margin-top:.9rem;">
+      <input type="hidden" name="on" value="true">
+      <button type="submit">Send me the Sunday email</button>
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="panel" style="margin-top:1rem;">
     <h2>API key</h2>
     <p class="mini">For reading your plan and workout log from your own apps
       and scripts. Ticking exercises off on the plan page doesn't need one —

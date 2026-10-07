@@ -76,6 +76,9 @@ body {
 .day .ex-row a:hover { text-decoration: underline; }
 .day .ex-row .sets { color: var(--muted); white-space: nowrap; font-size: .85rem; }
 .day .swap { font-size: .78rem; color: var(--muted); margin: -.1rem 0 .35rem; }
+.day .circuit { font-size: .85rem; color: var(--muted); margin-top: .6rem;
+               padding-top: .5rem; border-top: 1px solid var(--line); }
+.day .circuit strong { color: var(--ink); }
 
 /* ticking exercises off */
 .day .done-row { align-items: center; }

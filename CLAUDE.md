@@ -20,11 +20,17 @@ the wrong exercise.
 
 ## Rules that are load-bearing
 
-- **Plans are deterministic.** `generate_plan(week, days, level, run, equipment)` must return the same
-  plan for the same inputs, forever. The email, the plan page and the completion log each regenerate
+- **Plans are deterministic.** `generate_plan(week, days, level, run, equipment, year=)` must return the
+  same plan for the same inputs, forever. The email, the plan page and the completion log each regenerate
   it and must agree. No randomness, no "today", no database reads. Days a subscriber rearranges live
   in `day_plans` and go over the generated week in `app._plan_for`, which everything that shows or
   checks a plan must use. Only the Sunday email calls `generate_plan` directly.
+- **A new day layout starts at a week, never retroactively.** From 2026-W42 days have no core slot
+  (the abs circuit covers it) and push, pull and legs reach every major muscle; earlier weeks build
+  from `OLD_SPLITS`. That is why `generate_plan` needs the year. Snapshot every plan before touching
+  `SPLITS` or the beginner rule, and check earlier weeks come out identical.
+- **The week number people see is `db.week_number`**: weeks with anything logged, plus one. The ISO
+  week is for the rotation and storage keys only.
 - **New exercises that must not change existing plans go in `EXTRA_EXERCISES`**, not `POOLS`.
   Anything added to a pool shifts the rotation and changes every plan already generated, which
   orphans the sets logged against them.

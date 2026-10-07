@@ -37,10 +37,15 @@ def run(week: int | None = None, to: str | None = None,
     subs = db.active_subscribers(conn)
     if to:
         subs = [s for s in subs if s["email"] == to.lower().strip()]
+    # Turning the email off keeps the account: the plan is still in the app
+    # and on the site.
+    opted_out = sum(not db.wants_weekly_email(s) for s in subs)
+    subs = [s for s in subs if db.wants_weekly_email(s)]
 
     sent = skipped = failed = 0
     for sub in subs:
-        subject, html, text = emails.render_plan_email(sub, week)
+        subject, html, text = emails.render_plan_email(
+            sub, year, week, db.week_number(conn, sub["id"], key))
         if dry_run:
             print(f"--- {sub['email']} ({sub['days_per_week']}d, "
                   f"{sub['experience']}, {db.sub_equipment(sub)}, "
@@ -59,7 +64,8 @@ def run(week: int | None = None, to: str | None = None,
             db.unrecord_send(conn, sub["id"], key)
             failed += 1
 
-    return {"week": key, "active": len(subs), "sent": sent,
+    return {"week": key, "active": len(subs) + opted_out,
+            "opted_out": opted_out, "sent": sent,
             "skipped": skipped, "failed": failed}
 
 
@@ -73,7 +79,8 @@ def main() -> None:
     if not args.dry_run:
         print(f"Week {stats['week']}: sent={stats['sent']} "
               f"skipped(already sent)={stats['skipped']} "
-              f"failed={stats['failed']} of {stats['active']} active subscribers")
+              f"failed={stats['failed']} opted_out={stats['opted_out']} "
+              f"of {stats['active']} active subscribers")
 
 
 if __name__ == "__main__":

@@ -179,8 +179,7 @@ PREFS = {"days": 3, "experience": "beginner", "include_run": False,
 class TestConsistency(unittest.TestCase):
     def _full_day(self, week, day):
         """Every exercise the engine prescribes for that day, logged."""
-        iso = int(week[6:])
-        plan = progress.planned_week(PREFS, iso)
+        plan = progress.planned_week(PREFS, int(week[:4]), int(week[6:]))
         return [c(week, ex["slug"], 60, 10, day=day)
                 for ex in plan["days"][day - 1]["exercises"]]
 

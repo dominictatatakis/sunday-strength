@@ -425,26 +425,54 @@ ALTERNATIVES: dict[str, list[str]] = {
     "russian-twist": ["side-plank", "pallof-press", "dead-bug"],
 }
 
-# Day templates: ordered movement patterns. Every day ends with a core slot;
-# beginners get 3 main slots + core (see generate_plan).
-LEGS = ["squat", "hinge", "single_leg", "ham_curl", "core"]
-PUSH = ["h_push", "v_push", "chest_acc", "side_delt", "triceps", "core"]
-PULL = ["v_pull", "row", "rear_delt", "biceps", "core"]
-UPPER_A = ["h_push", "row", "v_push", "v_pull", "biceps", "core"]
-UPPER_B = ["v_push", "v_pull", "h_push", "row", "triceps", "core"]
-LOWER = ["squat", "hinge", "single_leg", "calf", "core"]
-FULL_A = ["squat", "h_push", "row", "core"]
-FULL_B = ["hinge", "v_push", "v_pull", "single_leg", "core"]
+# Day templates: ordered movement patterns; beginners get the first four.
+# There is no core slot: every day ends with the 5-minute abs circuit. Push,
+# pull and legs each reach every major muscle they're named for within the
+# first four, so beginners train them all too.
+LEGS = ["squat", "hinge", "single_leg", "calf", "ham_curl"]
+PUSH = ["h_push", "v_push", "chest_acc", "triceps", "side_delt"]
+PULL = ["v_pull", "row", "rear_delt", "biceps"]
+UPPER_A = ["h_push", "row", "v_push", "v_pull", "biceps"]
+UPPER_B = ["v_push", "v_pull", "h_push", "row", "triceps"]
+LOWER = ["squat", "hinge", "single_leg", "calf"]
+FULL_A = ["squat", "h_push", "row", "ham_curl"]
+FULL_B = ["hinge", "v_push", "v_pull", "single_leg"]
+BEGINNER_SLOTS = 4
 
 SPLITS: dict[int, list[tuple[str, list[str]]]] = {
     2: [("Full body A", FULL_A), ("Full body B", FULL_B)],
-    3: [("Legs & core", LEGS), ("Push (chest, shoulders, triceps) & core", PUSH),
-        ("Pull (back, biceps) & core", PULL)],
+    3: [("Legs", LEGS), ("Push (chest, shoulders, triceps)", PUSH),
+        ("Pull (back, biceps)", PULL)],
     4: [("Upper body 1", UPPER_A), ("Lower body 1", LOWER),
         ("Upper body 2", UPPER_B), ("Lower body 2", LOWER)],
-    5: [("Legs & core", LEGS), ("Push (chest, shoulders, triceps) & core", PUSH),
-        ("Pull (back, biceps) & core", PULL), ("Upper body", UPPER_A),
+    5: [("Legs", LEGS), ("Push (chest, shoulders, triceps)", PUSH),
+        ("Pull (back, biceps)", PULL), ("Upper body", UPPER_A),
         ("Lower body", LOWER)],
+}
+
+# Until 2026-W42 every day ended on a core slot, which beginners got after
+# their first three. Those weeks keep that layout: sets were logged against
+# them, and a plan never changes once generated.
+CORE_SLOT_UNTIL = (2026, 42)    # (ISO year, week) of the first week without
+OLD_SPLITS: dict[int, list[tuple[str, list[str]]]] = {
+    2: [("Full body A", ["squat", "h_push", "row", "core"]),
+        ("Full body B", ["hinge", "v_push", "v_pull", "single_leg", "core"])],
+    3: [("Legs & core", ["squat", "hinge", "single_leg", "ham_curl", "core"]),
+        ("Push (chest, shoulders, triceps) & core",
+         ["h_push", "v_push", "chest_acc", "side_delt", "triceps", "core"]),
+        ("Pull (back, biceps) & core",
+         ["v_pull", "row", "rear_delt", "biceps", "core"])],
+    4: [("Upper body 1", ["h_push", "row", "v_push", "v_pull", "biceps", "core"]),
+        ("Lower body 1", ["squat", "hinge", "single_leg", "calf", "core"]),
+        ("Upper body 2", ["v_push", "v_pull", "h_push", "row", "triceps", "core"]),
+        ("Lower body 2", ["squat", "hinge", "single_leg", "calf", "core"])],
+    5: [("Legs & core", ["squat", "hinge", "single_leg", "ham_curl", "core"]),
+        ("Push (chest, shoulders, triceps) & core",
+         ["h_push", "v_push", "chest_acc", "side_delt", "triceps", "core"]),
+        ("Pull (back, biceps) & core",
+         ["v_pull", "row", "rear_delt", "biceps", "core"]),
+        ("Upper body", ["h_push", "row", "v_push", "v_pull", "biceps", "core"]),
+        ("Lower body", ["squat", "hinge", "single_leg", "calf", "core"])],
 }
 
 RUNS = [
@@ -492,6 +520,7 @@ EXTRA_EXERCISES: list[tuple[str, str, str, str]] = [
     ("Reverse crunch", "reverse-crunch", "3 x 12-15", "bodyweight"),
     ("Bicycle crunch", "bicycle-crunch", "3 x 20 (10 each side)", "bodyweight"),
     ("Flutter kicks", "flutter-kick", "3 x 30 sec", "bodyweight"),
+    ("Heel touches", "heel-touch", "3 x 20 (10 each side)", "bodyweight"),
 ]
 
 
@@ -546,8 +575,13 @@ def alternatives_for(slug: str, equipment: str = "full",
 
 
 def generate_plan(week: int, days_per_week: int, experience: str,
-                  include_run: bool, equipment: str = "full") -> dict:
-    """Return a structured plan dict for one week."""
+                  include_run: bool, equipment: str = "full", *,
+                  year: int) -> dict:
+    """Return a structured plan dict for one ISO week of `year`.
+
+    The year is required, not defaulted: it picks the day layout, and a
+    caller that left it out would quietly rebuild old weeks in the new one.
+    """
     if days_per_week not in SPLITS:
         raise ValueError(f"days_per_week must be one of {sorted(SPLITS)}")
     if experience not in LEVELS:
@@ -555,11 +589,15 @@ def generate_plan(week: int, days_per_week: int, experience: str,
     if equipment not in EQUIPMENT_RANK:
         raise ValueError(f"equipment must be one of {EQUIPMENT}")
 
+    old = (year, week) < CORE_SLOT_UNTIL
     days = []
-    for d, (title, patterns) in enumerate(SPLITS[days_per_week]):
-        if experience == "beginner":
+    for d, (title, patterns) in enumerate((OLD_SPLITS if old else SPLITS)
+                                          [days_per_week]):
+        if experience == "beginner" and old:
             # 3 main movements + always finish with core
             patterns = [p for p in patterns if p != "core"][:3] + ["core"]
+        elif experience == "beginner":
+            patterns = patterns[:BEGINNER_SLOTS]
         exercises = []
         used: set[str] = set()
         for i, pattern in enumerate(patterns):
@@ -651,17 +689,18 @@ def apply_day_edits(plan: dict, edited: dict[int, list[str]],
 
 
 # The 5-minute abs circuit: one move from each group, in order, so it covers
-# resisting extension, flexion, the sides, twisting, then a fast finish.
+# resisting extension, flexion, the sides held, the sides moving, then a fast
+# finish. Every move is done down on a mat, on your back, front or side: no
+# standing, hanging, kneeling at a machine or sitting up, so the timer never
+# has you get up or fetch anything mid-circuit.
 # Each entry is (slug, the levels it suits); kit comes from SLUG_EQUIPMENT.
 _ALL = LEVELS
 CIRCUIT_GROUPS: list[list[tuple[str, tuple[str, ...]]]] = [
-    [("plank", _ALL), ("dead-bug", ("beginner", "intermediate")),
-     ("ab-wheel-rollout", ("advanced",))],
+    [("plank", _ALL), ("dead-bug", _ALL)],
     [("crunch", ("beginner",)), ("reverse-crunch", _ALL),
-     ("bicycle-crunch", _ALL), ("hanging-knee-raise", ("intermediate",)),
-     ("hanging-leg-raise", ("advanced",)), ("cable-crunch", ("advanced",))],
+     ("bicycle-crunch", _ALL)],
     [("side-plank", _ALL)],
-    [("russian-twist", _ALL), ("pallof-press", ("intermediate", "advanced"))],
+    [("heel-touch", _ALL)],
     [("mountain-climber", _ALL), ("flutter-kick", _ALL)],
 ]
 # Seconds of work and rest per move: more rest for beginners, the common
@@ -702,7 +741,10 @@ def plan_text(plan: dict, exercise_url=lambda slug: "") -> str:
     """Plain-text rendering (email text part, CLI preview)."""
     gym_days = len(plan["days"])
     header = f"{gym_days} gym days" + (" + 1 run" if plan["run"] else "")
-    lines = [f"Your plan - week {plan['week']} ({header})", ""]
+    # `number` is which week of training this is, which only the caller
+    # knows; plan["week"] is the ISO week, which reads as nonsense to people.
+    title = f"Your plan - week {plan['number']}" if "number" in plan else "Your plan"
+    lines = [f"{title} ({header})", ""]
     for day in plan["days"]:
         lines.append(day["title"])
         for ex in day["exercises"]:
@@ -712,6 +754,11 @@ def plan_text(plan: dict, exercise_url=lambda slug: "") -> str:
             if ex["alts"]:
                 swaps = " or ".join(a["name"] for a in ex["alts"])
                 lines.append(f"      no kit / taken? {swaps}")
+        if day.get("circuit"):
+            c = day["circuit"]
+            moves = ", ".join(m["name"] for m in c["moves"])
+            lines.append(f"  - Then 5-minute abs: {moves} - "
+                         f"{c['work']} s on, {c['rest']} s rest")
         lines.append("")
     if plan["run"]:
         lines.append(f"Day {gym_days + 1} - Run")
@@ -822,6 +869,8 @@ if __name__ == "__main__":
     import datetime
 
     p = argparse.ArgumentParser()
+    p.add_argument("--year", type=int,
+                   default=datetime.date.today().isocalendar()[0])
     p.add_argument("--week", type=int,
                    default=datetime.date.today().isocalendar()[1])
     p.add_argument("--days", type=int, default=3, choices=sorted(SPLITS))
@@ -830,4 +879,5 @@ if __name__ == "__main__":
     p.add_argument("--no-run", action="store_true")
     args = p.parse_args()
     print(plan_text(generate_plan(args.week, args.days, args.level,
-                                  not args.no_run, args.equipment)))
+                                  not args.no_run, args.equipment,
+                                  year=args.year)))

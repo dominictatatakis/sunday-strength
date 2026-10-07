@@ -69,6 +69,7 @@ ALIASES = {
     # The db's "Flutter Kicks" is face down on a bench, a glute exercise;
     # the circuit's is on your back. Our own copy below instead.
     "flutter-kick": None,
+    "heel-touch": "Alternate Heel Touchers",
     "bench-press": "Barbell Bench Press - Medium Grip",
     "incline-bench-press": "Barbell Incline Bench Press - Medium Grip",
     "close-grip-bench-press": "Close-Grip Barbell Bench Press",

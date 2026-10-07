@@ -205,14 +205,15 @@ def relative_strength(completions, bodyweight_kg, latest_week):
     return {"total": total, "lifts": lifts, "missing": missing}
 
 
-def planned_week(prefs, iso_week):
+def planned_week(prefs, year, iso_week):
     """The plan the subscriber was given that week.
 
     Plans are deterministic, so what was prescribed is always recoverable from
     (week, prefs) — nothing needs storing to know what they were meant to do.
     """
     return engine.generate_plan(iso_week, prefs["days"], prefs["experience"],
-                                prefs["include_run"], prefs["equipment"])
+                                prefs["include_run"], prefs["equipment"],
+                                year=year)
 
 
 def consistency(completions, prefs, latest_week):
@@ -231,7 +232,7 @@ def consistency(completions, prefs, latest_week):
     first = min(row["week"] for row in completions)
     weeks = []
     for week in week_range(first, latest_week):
-        plan = planned_week(prefs, int(week[6:]))
+        plan = planned_week(prefs, int(week[:4]), int(week[6:]))
         done = 0
         for index, day in enumerate(plan["days"], start=1):
             prescribed = {ex["slug"] for ex in day["exercises"]}

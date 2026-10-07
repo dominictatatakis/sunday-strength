@@ -3,7 +3,12 @@ import unittest
 
 import engine
 
-NEW = {"mountain-climber", "reverse-crunch", "bicycle-crunch", "flutter-kick"}
+NEW = {"mountain-climber", "reverse-crunch", "bicycle-crunch", "flutter-kick",
+       "heel-touch"}
+# Done standing, hanging, kneeling at a machine or sitting up: the circuit
+# keeps you down on the mat, so none of these.
+NOT_ON_THE_MAT = {"pallof-press", "hanging-knee-raise", "hanging-leg-raise",
+                  "cable-crunch", "ab-wheel-rollout", "russian-twist"}
 
 
 class Circuit(unittest.TestCase):
@@ -12,7 +17,8 @@ class Circuit(unittest.TestCase):
             for kit in engine.EQUIPMENT:
                 for days in engine.SPLITS:
                     for week in range(1, 54):
-                        plan = engine.generate_plan(week, days, level, False, kit)
+                        plan = engine.generate_plan(week, days, level, False, kit,
+                                                    year=2026)
                         for d, day in enumerate(plan["days"], start=1):
                             taken = {e["slug"] for e in day["exercises"]}
                             slugs = [m["slug"] for m in engine.abs_circuit(
@@ -21,6 +27,16 @@ class Circuit(unittest.TestCase):
                             self.assertEqual(len(slugs), 5, where)
                             self.assertEqual(len(set(slugs)), 5, where)
                             self.assertFalse(taken & set(slugs), where)
+
+    def test_every_move_is_done_down_on_the_mat(self):
+        for level in engine.LEVELS:
+            for kit in engine.EQUIPMENT:
+                for week in range(1, 54):
+                    for day in range(1, 6):
+                        slugs = {m["slug"] for m in engine.abs_circuit(
+                            week, day, level, kit)["moves"]}
+                        self.assertFalse(slugs & NOT_ON_THE_MAT,
+                                         (level, kit, week, day))
 
     def test_respects_level_and_kit(self):
         for week in range(1, 20):

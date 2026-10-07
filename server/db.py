@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS subscribers (
     stripe_customer_id TEXT,
     stripe_subscription_id TEXT,
     pinned_metric TEXT DEFAULT 'strength_index',
+    weekly_email INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -105,6 +106,8 @@ MIGRATIONS_PG = [
          THEN ALTER TABLE sends ALTER COLUMN week TYPE TEXT; END IF;
        END $$""",
     "ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS pinned_metric TEXT DEFAULT 'strength_index'",
+    "ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS weekly_email INTEGER "
+    "NOT NULL DEFAULT 1",
     # Supabase exposes every table in `public` through PostgREST, and its
     # default grants hand anon/authenticated full read/write. Without RLS that
     # made the whole subscriber table readable by anyone holding the anon key,
@@ -146,6 +149,7 @@ CREATE TABLE IF NOT EXISTS subscribers (
     stripe_customer_id TEXT,
     stripe_subscription_id TEXT,
     pinned_metric TEXT DEFAULT 'strength_index',
+    weekly_email INTEGER NOT NULL DEFAULT 1,       -- 0: no Sunday email
     created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
     updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
@@ -213,6 +217,7 @@ MIGRATIONS_SQLITE = [
     "ALTER TABLE subscribers ADD COLUMN api_key_hash TEXT",
     "ALTER TABLE completions ADD COLUMN sets INTEGER",
     "ALTER TABLE subscribers ADD COLUMN pinned_metric TEXT DEFAULT 'strength_index'",
+    "ALTER TABLE subscribers ADD COLUMN weekly_email INTEGER NOT NULL DEFAULT 1",
 ]
 
 
@@ -405,6 +410,22 @@ def sub_equipment(sub) -> str:
         return "full"
 
 
+def wants_weekly_email(sub) -> bool:
+    """Whether the Sunday email goes to them; on for rows from before the
+    choice existed."""
+    try:
+        return sub["weekly_email"] != 0
+    except (KeyError, IndexError):
+        return True
+
+
+def set_weekly_email(conn, subscriber_id: int, on: bool) -> None:
+    conn.execute("UPDATE subscribers SET weekly_email = ?, "
+                 "updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                 (int(on), subscriber_id))
+    conn.commit()
+
+
 def week_key(year: int, week: int) -> str:
     """The idempotency key for one send: '2026-W30'.
 
@@ -498,6 +519,18 @@ def last_logged(conn, subscriber_id: int, before_week: str | None = None) -> dic
             continue
         out.setdefault(r["slug"], dict(r))
     return out
+
+
+def week_number(conn, subscriber_id: int, week: str) -> int:
+    """Which week of training `week` is for them: one more than the weeks
+    before it with anything logged. Weeks with nothing logged don't count, so
+    a fortnight off doesn't move it on. String order is date order, as in
+    last_logged.
+    """
+    row = conn.execute(
+        "SELECT COUNT(DISTINCT week) AS n FROM completions "
+        "WHERE subscriber_id = ? AND week < ?", (subscriber_id, week)).fetchone()
+    return row["n"] + 1
 
 
 def completions_all(conn, subscriber_id: int) -> list:

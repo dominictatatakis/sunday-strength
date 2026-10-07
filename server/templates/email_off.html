@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sunday email — Sunday Strength</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="wrap narrow">
+  <nav class="top">
+    <a href="/" style="text-decoration:none;"><span class="wordmark">Sunday<em>Strength</em></span></a>
+  </nav>
+  <div class="panel">
+    {% if done or already %}
+    <h2>No more Sunday emails</h2>
+    <p>{{ email }} won't get the weekly plan by email. Your account carries
+      on: each week's plan is still in the app and
+      <a href="/account/plan">on the site</a>.</p>
+    <p class="mini" style="margin-top:.75rem;">Changed your mind? Turn it back
+      on in <a href="/account">your account</a>.</p>
+    {% else %}
+    <h2>Stop the Sunday email?</h2>
+    <p>{{ email }} will stop getting the weekly plan by email. Your account
+      carries on, and each week's plan stays in the app and on the site.</p>
+    <form method="post" action="/email/off" style="margin-top:1rem;">
+      <input type="hidden" name="token" value="{{ token }}">
+      <button type="submit">Stop the Sunday email</button>
+    </form>
+    <p class="mini" style="margin-top:.75rem;">This doesn't cancel your
+      subscription; that's under <a href="/account">your account</a>.</p>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>

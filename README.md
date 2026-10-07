@@ -85,7 +85,7 @@ Authenticate with the session cookie, or with `Authorization: Bearer ss_...` usi
 
 ```
 GET    /api/v1/me                     preferences, status and the valid options
-PATCH  /api/v1/me                     change any subset of preferences
+PATCH  /api/v1/me                     change any subset of preferences, or "weekly_email"
 GET    /api/v1/plan[?week=2026-W30]   the week's plan, with what has been logged
 POST   /api/v1/completions            {"day":1,"slug":"bench-press","sets":3,"reps":8,"weight_kg":60}
                                       ("done": false removes the entry)
@@ -98,6 +98,12 @@ GET    /api/v1/exercises              the library your kit allows, with steps an
 
 Each day in a plan also carries `circuit`: that day's 5-minute abs circuit (`work` and `rest` in
 seconds, five `moves`, and `done`). It is ticked like an exercise, with the slug `abs-circuit`.
+A plan's `week` is the ISO week the rotation runs on; `training_week` is the one to show: one more
+than the earlier weeks with anything logged.
+
+`weekly_email` in `/api/v1/me` is whether the Sunday email goes out. Turning it off keeps the account
+and the plan; the send job just skips them. The email's footer links to `/email/off`, which asks before
+turning it off.
 
 The iPhone app also uses the `/api/v1/auth/*` sign-in routes. `/docs` is off unless `DEV_DOCS=1`.
 

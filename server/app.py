@@ -563,7 +563,8 @@ def _account_context(sub, **extra) -> dict:
             "active": "settings", "equipment_options": engine.EQUIPMENT,
             "equipment_names": engine.EQUIPMENT_NAMES,
             "equipment": db.sub_equipment(sub),
-            "has_api_key": db.has_api_key(sub), **extra}
+            "has_api_key": db.has_api_key(sub),
+            "weekly_email": db.wants_weekly_email(sub), **extra}
 
 
 @app.get("/account", response_class=HTMLResponse)
@@ -593,6 +594,19 @@ def account_update(request: Request, days: int = Form(...),
     conn = db.connect()
     db.update_prefs(conn, email, days, experience, include_run, equipment)
     return RedirectResponse("/account?saved=1", status_code=303)
+
+
+@app.post("/account/weekly-email")
+def account_weekly_email(request: Request, on: bool = Form(...)):
+    email = _session_email(request)
+    if not email:
+        return RedirectResponse("/login", status_code=303)
+    conn = db.connect()
+    sub = db.get_by_email(conn, email)
+    if not sub:
+        return RedirectResponse("/login", status_code=303)
+    db.set_weekly_email(conn, sub["id"], on)
+    return RedirectResponse("/account", status_code=303)
 
 
 @app.post("/account/api-key", response_class=HTMLResponse)
@@ -670,6 +684,24 @@ def manage_cancel(token: str = Form(...)):
     return HTMLResponse("<p>Cancelled — you won't receive further emails.</p>")
 
 
+@app.get("/email/off", response_class=HTMLResponse)
+def email_off_page(request: Request, token: str):
+    """The Sunday email's stop link. It only asks: mail clients and link
+    scanners follow GETs, so turning it off waits for the POST."""
+    _conn, email, sub = _manage_sub(token)
+    return templates.TemplateResponse(request, "email_off.html", {
+        "email": email, "token": token, "done": False,
+        "already": not db.wants_weekly_email(sub)})
+
+
+@app.post("/email/off", response_class=HTMLResponse)
+def email_off(request: Request, token: str = Form(...)):
+    conn, email, sub = _manage_sub(token)
+    db.set_weekly_email(conn, sub["id"], False)
+    return templates.TemplateResponse(request, "email_off.html", {
+        "email": email, "token": token, "done": True, "already": False})
+
+
 def _current_sub(request: Request):
     email = _session_email(request)
     if not email:
@@ -685,7 +717,7 @@ def _plan_for(sub, year: int, week: int) -> dict:
     """
     equipment = db.sub_equipment(sub)
     plan = engine.generate_plan(week, sub["days_per_week"], sub["experience"],
-                                bool(sub["include_run"]), equipment)
+                                bool(sub["include_run"]), equipment, year=year)
     edited = db.day_plans_for_week(db.connect(), sub["id"],
                                    db.week_key(year, week))
     return engine.apply_day_edits(plan, edited, sub["experience"], equipment)
@@ -718,12 +750,12 @@ def exercise_library(request: Request):
     sub = _current_sub(request)
     if not sub:
         return RedirectResponse("/login", status_code=303)
-    week, _key, plan = _this_week_plan(sub)
+    _week, _key, plan = _this_week_plan(sub)
     return templates.TemplateResponse(request, "exercises.html", {
         "exercises": engine.flat_library(), "parts": engine.PART_NAMES,
         "part_order": engine.PART_ORDER, "levels": engine.LEVELS,
         "member": True, "sub": sub, "default_level": sub["experience"],
-        "week": week, "active": "exercises",
+        "active": "exercises",
         "equipment_options": engine.EQUIPMENT,
         "equipment_names": engine.EQUIPMENT_NAMES,
         "default_equipment": db.sub_equipment(sub),
@@ -783,11 +815,14 @@ def my_plan(request: Request, saved: str = ""):
         for ex in day["exercises"]:
             ex["sets_n"] = engine.prescribed_sets(ex["sets"])
     conn = db.connect()
+    for i, day in enumerate(plan["days"], start=1):
+        day["circuit"] = _circuit_for(sub, week, i, day)
     last = {slug: _last_label(log)
             for slug, log in db.last_logged(conn, sub["id"],
                                             before_week=key).items()}
     return templates.TemplateResponse(request, "plan.html", {
-        "sub": sub, "plan": plan, "week": week, "week_key": key,
+        "sub": sub, "plan": plan, "week_key": key,
+        "number": db.week_number(conn, sub["id"], key),
         "active": "plan", "saved": saved,
         "logged": db.completions_for_week(conn, sub["id"], key),
         "last": {k: v for k, v in last.items() if v},
@@ -838,6 +873,7 @@ class PrefsIn(BaseModel):
     experience: str | None = None
     equipment: str | None = None
     include_run: bool | None = None
+    weekly_email: bool | None = None        # the Sunday email
 
 
 class CompletionIn(BaseModel):
@@ -893,6 +929,7 @@ def _me_payload(sub) -> dict:
             "experience": sub["experience"],
             "equipment": db.sub_equipment(sub),
             "include_run": bool(sub["include_run"]),
+            "weekly_email": db.wants_weekly_email(sub),
             "options": _pref_options()}
 
 
@@ -935,6 +972,8 @@ def api_update_me(request: Request, body: PrefsIn):
 
     db.update_prefs(conn, sub["email"], days, experience, include_run,
                     equipment)
+    if body.weekly_email is not None:
+        db.set_weekly_email(conn, sub["id"], body.weekly_email)
     return _me_payload(db.get_by_email(conn, sub["email"]))
 
 
@@ -946,19 +985,22 @@ def _year_week(week: str | None) -> tuple[int, int]:
     return year, iso_week
 
 
+def _circuit_for(sub, iso_week: int, number: int, day: dict) -> dict:
+    """The abs circuit a day ends on. Chosen against the generated day, so
+    rearranging the day doesn't reshuffle it."""
+    return engine.abs_circuit(iso_week, number, sub["experience"],
+                              db.sub_equipment(sub), set(day["original"]))
+
+
 def _plan_payload(conn, sub, year: int, iso_week: int) -> dict:
     """A week's plan with what has been logged against it."""
     key = db.week_key(year, iso_week)
     plan = _plan_for(sub, year, iso_week)
     logged = db.completions_for_week(conn, sub["id"], key)
-    equipment = db.sub_equipment(sub)
     for i, day in enumerate(plan["days"], start=1):
         day["day"] = i
-        # Chosen against the generated day, so rearranging the day doesn't
-        # reshuffle the circuit. Only the app shows it.
         day["circuit"] = {
-            **engine.abs_circuit(iso_week, i, sub["experience"], equipment,
-                                 set(day["original"])),
+            **_circuit_for(sub, iso_week, i, day),
             "done": f"{i}|{engine.CIRCUIT_SLUG}" in logged}
         for ex in day["exercises"]:
             log = logged.get(f"{i}|{ex['slug']}")
@@ -968,6 +1010,9 @@ def _plan_payload(conn, sub, year: int, iso_week: int) -> dict:
             ex["weight_kg"] = log["weight_kg"] if log else None
             ex["reps"] = log["reps"] if log else None
     plan["week_key"] = key
+    # Which week of training this is, for the heading. "week" stays the ISO
+    # week, which the rotation runs on and API clients already read.
+    plan["training_week"] = db.week_number(conn, sub["id"], key)
     return plan
 
 
