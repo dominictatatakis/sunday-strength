@@ -6,8 +6,8 @@ import XCTest
 final class CircuitCueTests: XCTestCase {
 
     private func at(_ move: Int, _ phase: CircuitTimer.Phase,
-                    _ remaining: Int) -> CircuitTimer.Position {
-        .init(move: move, phase: phase, remaining: remaining)
+                    _ remaining: Int, _ side: CircuitTimer.Side? = nil) -> CircuitTimer.Position {
+        .init(move: move, phase: phase, remaining: remaining, side: side)
     }
 
     func testTheEndOfWorkSaysStop() {
@@ -30,6 +30,21 @@ final class CircuitCueTests: XCTestCase {
 
     func testSkippingToTheNextMoveSaysStart() {
         XCTAssertEqual(CircuitCue.between(at(0, .work, 30), at(1, .work, 40)), .start)
+    }
+
+    func testHalfwayThroughASidedMoveSaysSwitch() {
+        XCTAssertEqual(CircuitCue.between(at(2, .work, 1, .first), at(2, .work, 20, .second)),
+                       .switchSides)
+    }
+
+    func testTheLastSecondsBeforeSwitchingCountDown() {
+        XCTAssertEqual(CircuitCue.between(at(2, .work, 4, .first), at(2, .work, 3, .first)),
+                       .countdown)
+    }
+
+    /// The end of a sided move is still a stop, not a switch.
+    func testTheEndOfASidedMoveSaysStop() {
+        XCTAssertEqual(CircuitCue.between(at(2, .work, 1, .second), at(2, .rest, 20)), .stop)
     }
 
     func testTheEndSaysFinished() {
@@ -90,6 +105,7 @@ final class CircuitCueLoudnessTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(seconds(.start), 0.7)
         XCTAssertGreaterThanOrEqual(seconds(.countdown), 0.15)
         XCTAssertGreaterThanOrEqual(seconds(.finish), 1.0)
+        XCTAssertGreaterThanOrEqual(seconds(.switchSides), 0.7)
     }
 
     /// Phone speakers are weak below about 800 Hz, so nothing sits there.

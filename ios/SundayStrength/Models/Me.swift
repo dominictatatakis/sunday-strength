@@ -7,6 +7,9 @@ struct Me: Codable, Equatable {
     let experience: String
     let equipment: String
     let includeRun: Bool
+    /// Whether the plan is emailed on Sundays. Nil from an older server,
+    /// which has no way to turn it off.
+    var weeklyEmail: Bool? = nil
     /// What the preferences are allowed to be. Served with the profile so the
     /// app doesn't hard-code the splits and levels and drift from engine.py.
     let options: PrefOptions
@@ -31,4 +34,5 @@ struct PrefsPatch: Codable, Equatable {
     var experience: String?
     var equipment: String?
     var includeRun: Bool?
+    var weeklyEmail: Bool?
 }

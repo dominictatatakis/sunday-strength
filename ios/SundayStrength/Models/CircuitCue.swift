@@ -7,6 +7,9 @@ enum CircuitCue: CaseIterable {
     case start
     /// Work ends, rest now: one long low beep.
     case stop
+    /// Halfway through a sided move, change sides: a fast high-low warble,
+    /// unlike stop, so it can't be taken for the end of the move.
+    case switchSides
     /// One of the last three seconds of work or rest: a short soft beep.
     case countdown
     /// The circuit is over: three rising notes.
@@ -19,6 +22,8 @@ enum CircuitCue: CaseIterable {
         switch self {
         case .start: [(1320, 0.25), (0, 0.1), (1760, 0.35)]
         case .stop: [(880, 1.0)]
+        case .switchSides: [(1760, 0.15), (1320, 0.15), (1760, 0.15), (1320, 0.15),
+                            (1760, 0.15)]
         case .countdown: [(1100, 0.15)]
         case .finish: [(1320, 0.2), (1760, 0.2), (2640, 0.6)]
         }
@@ -37,6 +42,9 @@ enum CircuitCue: CaseIterable {
         guard let old else { return nil }
         if old.move != new.move || old.phase != new.phase {
             return new.phase == .work ? .start : .stop
+        }
+        if old.side != new.side {
+            return .switchSides
         }
         if old.remaining != new.remaining, new.remaining <= 3 {
             return .countdown

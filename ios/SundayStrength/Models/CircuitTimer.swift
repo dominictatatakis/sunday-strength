@@ -8,9 +8,17 @@ struct CircuitTimer: Equatable {
     let work: Int
     let rest: Int
     let moves: Int
+    /// Moves held on one side then the other, such as the side plank: their
+    /// work splits in half, each half counted down on its own, with a cue to
+    /// switch between them.
+    var sided: Set<Int> = []
 
     enum Phase: Equatable {
         case work, rest
+    }
+
+    enum Side: Equatable {
+        case first, second
     }
 
     struct Position: Equatable {
@@ -18,8 +26,11 @@ struct CircuitTimer: Equatable {
         let move: Int
         let phase: Phase
         /// Whole seconds left in this stretch, rounded up: "1" shows for the
-        /// whole last second rather than "0" while still going.
+        /// whole last second rather than "0" while still going. On a sided
+        /// move, a stretch is one side.
         let remaining: Int
+        /// Which side, during the work of a sided move; nil otherwise.
+        var side: Side? = nil
     }
 
     /// No rest after the last move.
@@ -35,8 +46,15 @@ struct CircuitTimer: Equatable {
         let move = min(Int(elapsed / block), moves - 1)
         let into = elapsed - Double(move) * block
         if into < Double(work) {
+            guard sided.contains(move) else {
+                return Position(move: move, phase: .work,
+                                remaining: Int((Double(work) - into).rounded(.up)))
+            }
+            let half = Double(work) / 2
+            let side: Side = into < half ? .first : .second
+            let end = side == .first ? half : Double(work)
             return Position(move: move, phase: .work,
-                            remaining: Int((Double(work) - into).rounded(.up)))
+                            remaining: Int((end - into).rounded(.up)), side: side)
         }
         return Position(move: move, phase: .rest,
                         remaining: Int((block - into).rounded(.up)))

@@ -29,6 +29,35 @@ final class CircuitTimerTests: XCTestCase {
         XCTAssertEqual(timer.position(at: 279), .init(move: 4, phase: .work, remaining: 1))
         XCTAssertNil(timer.position(at: 280))
     }
+
+    /// A side plank's 40 s is 20 s a side, each counted down from 20, so the
+    /// last three seconds before switching tick like any other.
+    func testASidedMoveCountsDownEachSide() {
+        let timer = CircuitTimer(work: 40, rest: 20, moves: 5, sided: [1])
+        XCTAssertEqual(timer.position(at: 60), .init(move: 1, phase: .work, remaining: 20, side: .first))
+        XCTAssertEqual(timer.position(at: 79.5), .init(move: 1, phase: .work, remaining: 1, side: .first))
+        XCTAssertEqual(timer.position(at: 80), .init(move: 1, phase: .work, remaining: 20, side: .second))
+        XCTAssertEqual(timer.position(at: 99.5), .init(move: 1, phase: .work, remaining: 1, side: .second))
+        XCTAssertEqual(timer.position(at: 100), .init(move: 1, phase: .rest, remaining: 20))
+    }
+
+    func testOtherMovesHaveNoSide() {
+        let timer = CircuitTimer(work: 40, rest: 20, moves: 5, sided: [1])
+        XCTAssertNil(timer.position(at: 30)?.side)
+        XCTAssertNil(timer.position(at: 130)?.side)
+    }
+
+    /// 45 s splits into 22.5 s a side rather than giving one side more.
+    func testAnOddWorkTimeSplitsEvenly() {
+        let timer = CircuitTimer(work: 45, rest: 15, moves: 5, sided: [0])
+        XCTAssertEqual(timer.position(at: 22.4)?.side, .first)
+        XCTAssertEqual(timer.position(at: 22.5)?.side, .second)
+        XCTAssertEqual(timer.position(at: 22.5)?.remaining, 23)
+    }
+
+    func testSidesDoNotChangeTheTotal() {
+        XCTAssertEqual(CircuitTimer(work: 40, rest: 20, moves: 5, sided: [2]).total, 280)
+    }
 }
 
 final class CircuitRunTests: XCTestCase {

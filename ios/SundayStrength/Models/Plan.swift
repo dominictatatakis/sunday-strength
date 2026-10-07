@@ -1,8 +1,12 @@
 import Foundation
 
 struct Plan: Codable, Equatable {
+    /// The ISO week, which the server's rotation runs on. Not for showing.
     let week: Int
     let weekKey: String
+    /// Which week of training this is: one more than the weeks before it
+    /// with anything logged. Nil from an older server or an older cached plan.
+    var trainingWeek: Int?
     let equipment: String
     let run: String?
     let notes: [String]
@@ -31,6 +35,17 @@ struct Circuit: Codable, Equatable {
     let rest: Int
     let moves: [Alt]
     var done: Bool
+}
+
+extension Circuit {
+    /// Moves held on one side and then the other. Known here rather than
+    /// served, so a plan cached before this existed still gets the cue.
+    static let oneSideAtATime: Set<String> = ["side-plank"]
+
+    /// The positions of those moves in this circuit.
+    var sided: Set<Int> {
+        Set(moves.indices.filter { Self.oneSideAtATime.contains(moves[$0].slug) })
+    }
 }
 
 extension PlanDay {

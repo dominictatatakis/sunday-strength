@@ -43,7 +43,7 @@ struct CircuitView: View {
 
     private func overview(_ circuit: Circuit) -> some View {
         let timer = CircuitTimer(work: circuit.work, rest: circuit.rest,
-                                 moves: circuit.moves.count)
+                                 moves: circuit.moves.count, sided: circuit.sided)
         return List {
             Section {
                 ForEach(Array(circuit.moves.enumerated()), id: \.offset) { i, move in
@@ -51,7 +51,14 @@ struct CircuitView: View {
                         Text("\(i + 1).")
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
-                        Text(move.name)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(move.name)
+                            if circuit.sided.contains(i) {
+                                Text(String(format: "%g s each side", Double(circuit.work) / 2))
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                         Spacer()
                         Button { preview = move } label: {
                             Image(systemName: "info.circle").font(.title3)
@@ -143,7 +150,7 @@ private struct CircuitTimerView: View {
                     .monospacedDigit()
                     .foregroundStyle(position.phase == .work ? Color.accentColor : .secondary)
                     .accessibilityLabel("\(position.remaining) seconds left")
-                Text(position.phase == .work ? "Work" : "Rest")
+                Text(label(position))
                     .font(.title3.weight(.semibold))
                 if let next = next(after: position) {
                     Text("Next: \(next)")
@@ -178,6 +185,15 @@ private struct CircuitTimerView: View {
         }
     }
 
+    private func label(_ position: CircuitTimer.Position) -> String {
+        switch (position.phase, position.side) {
+        case (.rest, _): "Rest"
+        case (.work, nil): "Work"
+        case (.work, .first): "Work · first side"
+        case (.work, .second): "Work · other side"
+        }
+    }
+
     /// During work, the move after this one; during rest, the one coming up.
     private func next(after position: CircuitTimer.Position) -> String? {
         let upcoming = position.move + 1
@@ -195,6 +211,8 @@ private struct CircuitTimerView: View {
         switch cue {
         case .start, .stop:
             UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        case .switchSides:
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
         case .countdown:
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         case .finish:

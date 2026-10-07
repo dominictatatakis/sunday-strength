@@ -41,7 +41,7 @@ final class ScreenshotTests: AppUITestCase {
         app.buttons["Save"].tap()
 
         openSettings(app)
-        XCTAssertTrue(app.buttons["Sign out"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Save changes"].waitForExistence(timeout: 10))
         save("D-settings", app)
     }
 }

@@ -276,6 +276,28 @@ final class AppModel {
         return false
     }
 
+    /// Saved as soon as it's switched: it doesn't touch the plan, so it needs
+    /// neither the Save button nor a rebuild. The switch moves at once and
+    /// goes back if the server says no.
+    func setWeeklyEmail(_ on: Bool) async {
+        guard let previous = me?.weeklyEmail, previous != on else { return }
+        me?.weeklyEmail = on
+        do {
+            me = try await api.updateMe(PrefsPatch(weeklyEmail: on))
+            settingsError = nil
+            return
+        } catch APIError.rejected(let detail) {
+            settingsError = detail
+        } catch APIError.notAuthorised {
+            await restore()
+        } catch APIError.offline {
+            settingsError = "Can't reach Sunday Strength. The Sunday email wasn't changed."
+        } catch {
+            settingsError = "Something went wrong. The Sunday email wasn't changed."
+        }
+        me?.weeklyEmail = previous
+    }
+
     /// Optimistic: the row changes immediately, because waiting for a round
     /// trip between every set is unusable in a gym.
     func log(day: Int, slug: String, sets: Int?, reps: Int?,

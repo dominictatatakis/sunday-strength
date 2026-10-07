@@ -73,6 +73,19 @@ struct SettingsView: View {
                         }
                     }
 
+                    if let weeklyEmail = me.weeklyEmail {
+                        Section {
+                            Toggle("Email me my plan on Sundays", isOn: Binding(
+                                get: { model.me?.weeklyEmail ?? weeklyEmail },
+                                set: { on in Task { await model.setWeeklyEmail(on) } }))
+                                .accessibilityIdentifier("weeklyEmail")
+                        } header: {
+                            Text("Sunday email")
+                        } footer: {
+                            Text("Your plan is here in the app either way. This saves straight away.")
+                        }
+                    }
+
                     Section {
                         Text(me.email)
                             .foregroundStyle(.secondary)

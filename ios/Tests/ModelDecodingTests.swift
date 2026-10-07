@@ -161,4 +161,41 @@ extension ModelDecodingTests {
                                             moves: [Alt(name: "Plank", slug: "plank")],
                                             done: true))
     }
+
+    func testTheSidePlankIsTheSidedMove() {
+        let moves = ["plank", "crunch", "side-plank", "heel-touch", "flutter-kick"]
+            .map { Alt(name: $0, slug: $0) }
+        XCTAssertEqual(Circuit(work: 40, rest: 20, moves: moves, done: false).sided, [2])
+    }
+}
+
+extension ModelDecodingTests {
+    func testDecodesTheWeekOfTraining() throws {
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: fixture("plan")) as? [String: Any])
+        json["training_week"] = 3
+        let plan = try JSON.decoder.decode(Plan.self,
+                                           from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertEqual(plan.trainingWeek, 3)
+    }
+
+    /// An older server or cached plan has none: the title says "This week"
+    /// rather than falling back to the week of the year.
+    func testAPlanWithoutTheWeekOfTrainingHasNone() throws {
+        XCTAssertNil(try JSON.decoder.decode(Plan.self, from: fixture("plan")).trainingWeek)
+    }
+
+    func testDecodesTheSundayEmailChoice() throws {
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: fixture("me")) as? [String: Any])
+        json["weekly_email"] = false
+        let me = try JSON.decoder.decode(Me.self,
+                                         from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertEqual(me.weeklyEmail, false)
+        XCTAssertNil(try JSON.decoder.decode(Me.self, from: fixture("me")).weeklyEmail)
+    }
+
+    func testPatchSendsTheSundayEmailChoice() throws {
+        let text = String(decoding: try JSON.encoder.encode(PrefsPatch(weeklyEmail: false)),
+                          as: UTF8.self)
+        XCTAssertEqual(text, #"{"weekly_email":false}"#)
+    }
 }

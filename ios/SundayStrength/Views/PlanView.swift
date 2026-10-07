@@ -55,7 +55,9 @@ struct PlanView: View {
                 }
             }
             .sheet(item: $sheet) { content(for: $0) }
-            .navigationTitle(model.plan.map { "Week \($0.week)" } ?? "This week")
+            // The week of training, not of the year: "Week 41" in someone's
+            // first week read as nonsense.
+            .navigationTitle(model.plan?.trainingWeek.map { "Week \($0)" } ?? "This week")
             .refreshable { await model.loadPlan() }
         }
     }

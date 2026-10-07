@@ -50,7 +50,13 @@ class AppUITestCase: XCTestCase {
             return          // already signed out
         }
         openSettings(app)
+        // Sign out is at the bottom of Settings, and a list only builds the
+        // rows on screen, so scroll until it exists.
         let signOut = app.buttons["Sign out"]
+        _ = app.buttons["Save changes"].waitForExistence(timeout: 5)
+        for _ in 0..<4 where !signOut.exists {
+            app.swipeUp()
+        }
         if signOut.waitForExistence(timeout: 5) {
             signOut.tap()
         }

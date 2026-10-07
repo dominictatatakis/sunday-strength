@@ -161,6 +161,61 @@ extension AppModelTests {
     }
 }
 
+extension AppModelTests {
+    private var meWithEmailJSON: String {
+        meJSON.replacingOccurrences(of: #""include_run":true,"#,
+                                    with: #""include_run":true,"weekly_email":true,"#)
+    }
+
+    /// The switch sends only itself, and the screen shows the server's answer.
+    func testSwitchingTheSundayEmailOffSendsOnlyThat() async {
+        let body = LockedBox()
+        StubProtocol.handler = { request in
+            if request.url!.path.hasSuffix("/login") { return self.loginRedirect() }
+            if request.url!.path.contains("plan") {
+                return self.ok(Data(self.planJSON.utf8))
+            }
+            if request.httpMethod == "PATCH" {
+                body.value = request.httpBodyStreamData()
+                    .map { String(decoding: $0, as: UTF8.self) }
+                return self.ok(Data(self.meWithEmailJSON.replacingOccurrences(
+                    of: #""weekly_email":true"#, with: #""weekly_email":false"#).utf8))
+            }
+            return self.ok(Data(self.meWithEmailJSON.utf8))
+        }
+        let model = makeModel()
+        await model.signIn(email: "a@b.com", password: "x")
+        XCTAssertEqual(model.me?.weeklyEmail, true, "the test never signed in")
+
+        await model.setWeeklyEmail(false)
+
+        XCTAssertEqual(body.value, #"{"weekly_email":false}"#)
+        XCTAssertEqual(model.me?.weeklyEmail, false)
+        XCTAssertNil(model.settingsError)
+    }
+
+    /// Without signal the switch goes back, so it never shows a choice the
+    /// server doesn't have.
+    func testASundayEmailSwitchThatFailsGoesBack() async {
+        StubProtocol.handler = { request in
+            if request.url!.path.hasSuffix("/login") { return self.loginRedirect() }
+            if request.httpMethod == "PATCH" { throw URLError(.notConnectedToInternet) }
+            if request.url!.path.contains("plan") {
+                return self.ok(Data(self.planJSON.utf8))
+            }
+            return self.ok(Data(self.meWithEmailJSON.utf8))
+        }
+        let model = makeModel()
+        await model.signIn(email: "a@b.com", password: "x")
+        XCTAssertEqual(model.me?.weeklyEmail, true, "the test never signed in")
+
+        await model.setWeeklyEmail(false)
+
+        XCTAssertEqual(model.me?.weeklyEmail, true)
+        XCTAssertNotNil(model.settingsError)
+    }
+}
+
 /// Somewhere for the stub's closure to hand a value back.
 final class LockedBox: @unchecked Sendable {
     private let lock = NSLock()
